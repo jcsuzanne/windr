@@ -160,3 +160,9 @@ Ensuite `layout dev` applique le profil `dev`, et `hs -c 'spoon.Windr:save("dev"
 - **Une app n'est pas déplacée** : elle doit être ouverte. Les noms d'apps sont ceux affichés par macOS (par exemple `Google Chrome`, pas `chrome`).
 - **Mettre à jour** : télécharge le dernier zip et double-clique à nouveau sur `Windr.spoon` (tes profils sont conservés), puis Reload Config.
 - **Désinstaller** : retire les deux lignes de `init.lua`, puis supprime `~/.hammerspoon/Spoons/Windr.spoon` et `~/.hammerspoon/windr_layouts.json`.
+
+---
+
+## Licence
+
+[MIT](LICENSE)
