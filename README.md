@@ -1,154 +1,156 @@
-# Windr — tes dispositions de fenêtres en un clic
+# Windr — your window layouts, one click away
 
-Windr ajoute une icône dans la barre de menus macOS. Elle ouvre un panneau avec tes **profils de disposition** (où va Cursor, où va le terminal, où va Figma…). Un clic sur un profil, et toutes les fenêtres se placent.
+Windr adds an icon to the macOS menu bar. It opens a panel listing your **layout profiles**: where Cursor goes, where the terminal goes, where Figma goes, and so on. Click a profile and every window snaps into place.
 
-![Panneau Windr](docs/panel.png)
+![Windr panel](docs/panel.png)
 
-- **Appliquer** un profil : un clic, ou les touches `1` à `9`
-- **Capturer** la disposition actuelle de tes fenêtres pour créer un nouveau profil
-- **Modifier** un profil : retirer une app, le renommer
-- **Réordonner** les profils par glisser-déposer
-- **Variantes par écran** : un même profil peut avoir une disposition pour ton écran externe et une autre pour le MacBook
+- **Apply** a profile with one click, or with keys `1` to `9`
+- **Capture** your current window arrangement as a new profile
+- **Edit** a profile: remove an app, rename it
+- **Reorder** profiles with drag and drop
+- **Per-screen variants**: one profile can hold one arrangement for your external display and another for your MacBook
 
-Windr est un plugin (« Spoon ») pour [Hammerspoon](https://www.hammerspoon.org), un outil d'automatisation macOS gratuit et open source.
+Windr is a plugin ("Spoon") for [Hammerspoon](https://www.hammerspoon.org), a free and open-source macOS automation tool.
+
+> The panel's interface is in French. The labels used below are given in French with their English meaning.
 
 ---
 
 ## Installation (5 minutes)
 
-### 1. Installer Hammerspoon
+### 1. Install Hammerspoon
 
 ```sh
 brew install --cask hammerspoon
 ```
 
-Sans Homebrew, tu peux aussi le télécharger sur [hammerspoon.org](https://www.hammerspoon.org).
+If you don't use Homebrew, download it from [hammerspoon.org](https://www.hammerspoon.org).
 
-Lance Hammerspoon, puis :
+Launch Hammerspoon, then:
 
-- **Autorise l'accessibilité** : `Réglages Système → Confidentialité et sécurité → Accessibilité` → active **Hammerspoon**. Sans cette autorisation, les fenêtres ne bougent pas.
-- **Lancement au démarrage** : clique sur l'icône Hammerspoon (le marteau) dans la barre de menus, puis `Preferences…` → coche **Launch Hammerspoon at login**.
+- **Grant Accessibility access**: `System Settings → Privacy & Security → Accessibility` → turn on **Hammerspoon**. Without it, windows won't move.
+- **Start at login**: click the Hammerspoon icon (the hammer) in the menu bar → `Preferences…` → check **Launch Hammerspoon at login**.
 
-### 2. Installer Windr
+### 2. Install Windr
 
-Décompresse l'archive, puis **double-clique sur `Windr.spoon`**. Hammerspoon l'installe tout seul dans `~/.hammerspoon/Spoons/`.
+Unzip the archive, then **double-click `Windr.spoon`**. Hammerspoon installs it into `~/.hammerspoon/Spoons/` for you.
 
-Si le double-clic ne fait rien, copie-le à la main :
+If double-clicking does nothing, copy it manually:
 
 ```sh
 mkdir -p ~/.hammerspoon/Spoons && cp -R Windr.spoon ~/.hammerspoon/Spoons/
 ```
 
-### 3. Activer Windr
+### 3. Enable Windr
 
-Ouvre le fichier de config de Hammerspoon. Tu peux passer par l'icône marteau → `Open Config`, ou ouvrir directement `~/.hammerspoon/init.lua`. Ajoute :
+Open Hammerspoon's config file: hammer icon → `Open Config`, or open `~/.hammerspoon/init.lua` directly. Add:
 
 ```lua
 hs.loadSpoon("Windr")
 spoon.Windr:start()
 ```
 
-Enregistre, puis icône marteau → **Reload Config**. Une nouvelle icône ▥ apparaît dans la barre de menus : c'est Windr.
+Save, then hammer icon → **Reload Config**. A new icon (a rectangle split into panes) appears in the menu bar: that's Windr.
 
 ---
 
-## Premiers pas : créer ton premier profil
+## Getting started: create your first profile
 
-1. Place tes fenêtres comme tu les aimes (par exemple l'éditeur à gauche, le navigateur à droite).
-2. Clique sur l'icône Windr, ou appuie sur `⌘⌥⌃Espace`.
-3. Clique sur **Capturer**, ou appuie sur `N`.
-4. Un aperçu de ta disposition s'affiche. **Clique sur une app pour l'exclure** si elle ne doit pas faire partie du profil.
-5. Donne un nom (`dev`, `design`, `call`…) puis **Entrée**.
+1. Arrange your windows the way you like them (for example, editor on the left, browser on the right).
+2. Click the Windr icon, or press `⌘⌥⌃Space`.
+3. Click **Capturer** (Capture), or press `N`.
+4. A preview of your arrangement appears. **Click an app to exclude it** if it shouldn't be part of the profile.
+5. Type a name (`dev`, `design`, `call`…) and press **Enter**.
 
-C'est tout. La prochaine fois, ouvre le panneau et clique sur `dev` : tout se remet en place.
+That's it. Next time, open the panel and click `dev`: everything goes back into place.
 
-![Modifier un profil](docs/editor.png)
+![Editing a profile](docs/editor.png)
 
-> Finder et Réglages Système ne sont jamais capturés, car ce sont souvent des fenêtres ouvertes par hasard.
+> Finder and System Settings are never captured. Their windows are usually open by accident.
 
 ---
 
-## Utilisation
+## Usage
 
-| Action | Comment |
+| Action | How |
 | --- | --- |
-| Ouvrir / fermer le panneau | Icône dans la barre de menus, ou `⌘⌥⌃Espace` |
-| Appliquer un profil | Clic sur la carte, `1`–`9`, ou flèches + `Entrée` |
-| Nouveau profil | Carte **Capturer** ou `N` |
-| Réordonner | Glisser-déposer une carte (les numéros suivent) |
-| Fermer | `Échap` ou clic ailleurs |
+| Open / close the panel | Menu bar icon, or `⌘⌥⌃Space` |
+| Apply a profile | Click its card, press `1`–`9`, or use arrow keys + `Enter` |
+| New profile | **Capturer** (Capture) card, or `N` |
+| Reorder | Drag and drop a card (the numbers follow) |
+| Close | `Esc`, or click anywhere else |
 
-En survolant une carte, trois boutons apparaissent en haut à droite :
+Hover over a card and three buttons appear in its top-right corner:
 
-- ✏️ **Modifier** : retirer ou remettre des apps, renommer le profil
-- ⧉ **Remplacer** : remplace le profil par la disposition actuelle des fenêtres
-- ✕ **Supprimer** : demande un second clic pour confirmer
+- ✏️ **Edit**: remove or restore apps, rename the profile
+- ⧉ **Replace**: overwrite the profile with your current window arrangement
+- ✕ **Delete**: click a second time to confirm
 
-Le point vert indique le dernier profil appliqué. Une app fermée apparaît grisée dans l'aperçu : elle sera ignorée tant qu'elle n'est pas ouverte.
+The green dot marks the last profile you applied. A closed app is greyed out in the preview and is skipped until you open it.
 
-### Variantes par écran
+### Per-screen variants
 
-Un profil est enregistré pour la largeur de l'écran sur lequel tu le captures (par exemple `3840` pour un écran 4K large), et sert aussi de disposition **par défaut** sur les autres écrans. Si tu captures le même profil sur ton MacBook, cela ajoute une variante pour cet écran. La variante utilisée est indiquée sous le nom de chaque carte.
+A profile is saved for the width of the screen you capture it on (for example `3840` for a wide 4K display). It is also used as the **default** arrangement on other screens. Capturing the same profile on your MacBook adds a variant for that screen. Each card shows which variant is in use under its name.
 
 ---
 
 ## Options
 
-Toutes les options sont facultatives :
+All options are optional:
 
 ```lua
 hs.loadSpoon("Windr")
 spoon.Windr:start({
-  -- Raccourci du panneau (false pour aucun)
+  -- Shortcut to open the panel (false for none)
   hotkey = { { "cmd", "alt", "ctrl" }, "space" },
 
-  -- ⌘⌥⌃1 … ⌘⌥⌃9 appliquent directement les profils, dans l'ordre du panneau
+  -- ⌘⌥⌃1 … ⌘⌥⌃9 apply profiles directly, in panel order
   profileHotkeys = { "cmd", "alt", "ctrl" },
 
-  -- Apps à ne jamais capturer (bundle IDs)
+  -- Apps that should never be captured (bundle IDs)
   ignore = { "com.tinyspeck.slackmacgap" },
 })
 ```
 
-Tu peux aussi définir des profils dans le code. Les positions sont des fractions de l'écran, `{x, y, largeur, hauteur}` entre 0 et 1 :
+You can also define profiles in code. Positions are fractions of the screen, `{x, y, width, height}` between 0 and 1:
 
 ```lua
 spoon.Windr:start({
   layouts = {
     dev = {
       default = {
-        Cursor  = { 0,   0, 0.5, 1 },   -- moitié gauche
-        Ghostty = { 0.5, 0, 0.5, 1 },   -- moitié droite
+        Cursor  = { 0,   0, 0.5, 1 },   -- left half
+        Ghostty = { 0.5, 0, 0.5, 1 },   -- right half
       },
     },
   },
 })
 ```
 
-Les profils capturés depuis le panneau sont enregistrés dans `~/.hammerspoon/windr_layouts.json`.
+Profiles captured from the panel are saved in `~/.hammerspoon/windr_layouts.json`.
 
-### Bonus : une commande `layout` dans le terminal
+### Bonus: a `layout` command in the terminal
 
-Dans `~/.hammerspoon/init.lua` :
+In `~/.hammerspoon/init.lua`:
 
 ```lua
 require("hs.ipc")
-hs.ipc.cliInstall("/opt/homebrew")   -- installe la commande `hs` (Mac Apple Silicon avec Homebrew)
+hs.ipc.cliInstall("/opt/homebrew")   -- installs the `hs` command (Apple Silicon Mac with Homebrew)
 ```
 
-Dans `~/.zshrc` :
+In `~/.zshrc`:
 
 ```sh
 layout() { hs -c "spoon.Windr:apply(\"$1\")"; }
 ```
 
-Ensuite `layout dev` applique le profil `dev`, et `hs -c 'spoon.Windr:save("dev")'` capture la disposition actuelle sous ce nom.
+Then `layout dev` applies the `dev` profile, and `hs -c 'spoon.Windr:save("dev")'` captures your current arrangement under that name.
 
 ---
 
-## Dépannage
+## Troubleshooting
 
-- **Les fenêtres ne bougent pas** : vérifie l'autorisation Accessibilité de Hammerspoon. Si elle est déjà cochée, décoche-la puis recoche-la, et relance Hammerspoon.
-- **L'icône n'apparaît pas** : icône marteau → `Console` pour voir l'erreur. Vérifie que `Windr.spoon` est bien dans `~/.hammerspoon/Spoons/`.
-- **Une app n'est pas déplacée** : elle doit être ouverte. Les noms d'apps sont ceux affichés par macOS (par exemple `Google Chrome`, pas `chrome`).
-- **Désinstaller** : retire les deux lignes de `init.lua`, puis supprime `~/.hammerspoon/Spoons/Windr.spoon` et `~/.hammerspoon/windr_layouts.json`.
+- **Windows don't move**: check Hammerspoon's Accessibility permission. If it's already on, turn it off and on again, then restart Hammerspoon.
+- **The icon doesn't appear**: hammer icon → `Console` to see the error. Make sure `Windr.spoon` is in `~/.hammerspoon/Spoons/`.
+- **An app isn't moved**: it has to be open. App names are the ones macOS displays (for example `Google Chrome`, not `chrome`).
+- **Uninstall**: remove the two lines from `init.lua`, then delete `~/.hammerspoon/Spoons/Windr.spoon` and `~/.hammerspoon/windr_layouts.json`.
