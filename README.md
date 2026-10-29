@@ -12,7 +12,9 @@ Windr adds an icon to the macOS menu bar. It opens a panel listing your **layout
 
 Windr is a plugin ("Spoon") for [Hammerspoon](https://www.hammerspoon.org), a free and open-source macOS automation tool.
 
-> The panel's interface is in French. The labels used below are given in French with their English meaning.
+🇫🇷 [Version française](README.fr.md)
+
+> The interface follows your macOS language (English or French). See the `language` option to force one.
 
 ---
 
@@ -33,7 +35,7 @@ Launch Hammerspoon, then:
 
 ### 2. Install Windr
 
-Unzip the archive, then **double-click `Windr.spoon`**. Hammerspoon installs it into `~/.hammerspoon/Spoons/` for you.
+[**Download Windr.zip**](https://github.com/jcsuzanne/windr/raw/main/dist/Windr.zip), unzip it, then **double-click `Windr.spoon`**. Hammerspoon installs it into `~/.hammerspoon/Spoons/` for you.
 
 If double-clicking does nothing, copy it manually:
 
@@ -58,13 +60,13 @@ Save, then hammer icon → **Reload Config**. A new icon (a rectangle split into
 
 1. Arrange your windows the way you like them (for example, editor on the left, browser on the right).
 2. Click the Windr icon, or press `⌘⌥⌃Space`.
-3. Click **Capturer** (Capture), or press `N`.
+3. Click **Capture**, or press `N`.
 4. A preview of your arrangement appears. **Click an app to exclude it** if it shouldn't be part of the profile.
 5. Type a name (`dev`, `design`, `call`…) and press **Enter**.
 
 That's it. Next time, open the panel and click `dev`: everything goes back into place.
 
-![Editing a profile](docs/editor.png)
+![Capturing a new profile](docs/capture.png)
 
 > Finder and System Settings are never captured. Their windows are usually open by accident.
 
@@ -76,7 +78,7 @@ That's it. Next time, open the panel and click `dev`: everything goes back into 
 | --- | --- |
 | Open / close the panel | Menu bar icon, or `⌘⌥⌃Space` |
 | Apply a profile | Click its card, press `1`–`9`, or use arrow keys + `Enter` |
-| New profile | **Capturer** (Capture) card, or `N` |
+| New profile | **Capture** card, or `N` |
 | Reorder | Drag and drop a card (the numbers follow) |
 | Close | `Esc`, or click anywhere else |
 
@@ -109,6 +111,9 @@ spoon.Windr:start({
 
   -- Apps that should never be captured (bundle IDs)
   ignore = { "com.tinyspeck.slackmacgap" },
+
+  -- Interface language: "auto" (follows macOS), "en" or "fr"
+  language = "auto",
 })
 ```
 
@@ -153,4 +158,5 @@ Then `layout dev` applies the `dev` profile, and `hs -c 'spoon.Windr:save("dev")
 - **Windows don't move**: check Hammerspoon's Accessibility permission. If it's already on, turn it off and on again, then restart Hammerspoon.
 - **The icon doesn't appear**: hammer icon → `Console` to see the error. Make sure `Windr.spoon` is in `~/.hammerspoon/Spoons/`.
 - **An app isn't moved**: it has to be open. App names are the ones macOS displays (for example `Google Chrome`, not `chrome`).
+- **Update**: download the latest zip and double-click `Windr.spoon` again (your profiles are kept), then Reload Config.
 - **Uninstall**: remove the two lines from `init.lua`, then delete `~/.hammerspoon/Spoons/Windr.spoon` and `~/.hammerspoon/windr_layouts.json`.

@@ -1,15 +1,16 @@
 --- === Windr ===
 ---
---- Gestionnaire visuel de dispositions de fenêtres (layouts) pour macOS.
+--- Visual window layout manager for macOS.
 ---
---- * Icône dans la barre de menus + panneau listant les profils, avec aperçu de chaque disposition
---- * Clic sur une carte (ou 1-9 / flèches + Entrée) pour appliquer un profil
---- * « Capturer » (N) enregistre la disposition actuelle des fenêtres comme nouveau profil
---- * Modifier, remplacer, supprimer et réordonner (glisser-déposer) les profils
+--- * Menu bar icon + panel listing your profiles, with a preview of each arrangement
+--- * Click a card (or 1-9 / arrows + Enter) to apply a profile
+--- * "Capture" (N) saves the current window arrangement as a new profile
+--- * Edit, replace, delete and reorder (drag and drop) profiles
 ---
---- Les profils capturés sont enregistrés dans ~/.hammerspoon/windr_layouts.json.
+--- Captured profiles are stored in ~/.hammerspoon/windr_layouts.json.
+--- The interface follows the macOS language (English or French).
 ---
---- Utilisation minimale dans ~/.hammerspoon/init.lua :
+--- Minimal setup in ~/.hammerspoon/init.lua:
 ---   hs.loadSpoon("Windr")
 ---   spoon.Windr:start()
 
@@ -17,7 +18,7 @@ local obj = {}
 obj.__index = obj
 
 obj.name = "Windr"
-obj.version = "1.0"
+obj.version = "1.1"
 obj.author = "jc.suzanne"
 obj.license = "MIT - https://opensource.org/licenses/MIT"
 
@@ -26,24 +27,122 @@ local M = obj
 local CARD_W, GAP, PAD = 196, 10, 16
 
 local config = {
-  -- Raccourci global pour ouvrir/fermer le panneau (false pour désactiver)
+  -- Global shortcut to open/close the panel (false to disable)
   hotkey = { { "cmd", "alt", "ctrl" }, "space" },
-  -- Modificateurs pour appliquer le profil n°1..9 du panneau (ex. {"cmd","alt","ctrl"}), nil = désactivé
+  -- Modifiers to apply profile 1..9 of the panel (e.g. {"cmd","alt","ctrl"}), nil = disabled
   profileHotkeys = nil,
-  -- Profils de départ : { nom = { [largeurEcran] = { App = {x, y, w, h} }, default = {...} } }
+  -- Starter profiles: { name = { [screenWidth] = { App = {x, y, w, h} }, default = {...} } }
   layouts = {},
-  -- Fichier des profils capturés
+  -- File holding captured profiles
   profilesFile = hs.configdir .. "/windr_layouts.json",
-  -- Bundle IDs supplémentaires à ne jamais capturer
+  -- Extra bundle IDs that are never captured
   ignore = {},
+  -- "auto" (follows macOS), "en" or "fr"
+  language = "auto",
 }
 
--- Apps jamais capturées (fenêtres utilitaires souvent ouvertes par hasard), par bundle ID
+-- Apps never captured (utility windows that are often open by accident), by bundle ID
 local IGNORED = {
   ["org.hammerspoon.Hammerspoon"] = true,
   ["com.apple.finder"] = true,
   ["com.apple.systempreferences"] = true,
 }
+
+-- ---------- Translations ----------
+-- {name}, {key}, {apps} are placeholders filled in by fmt() in the panel.
+local STRINGS = {
+  en = {
+    title = "Layouts",
+    capture = "Capture",
+    newProfile = "New profile",
+    currentLayout = "Current layout",
+    apply = "apply",
+    captureKey = "capture",
+    dragHint = "drag to reorder",
+    close = "close",
+    app = "app", apps = "apps",
+    active = "Active",
+    closed = "(closed)",
+    editTip = "Edit the profile's apps",
+    replaceTip = "Replace with the current layout",
+    deleteTip = "Delete",
+    restoreTip = "Restore the original version",
+    deleteConfirm = "Delete?",
+    restoreConfirm = "Restore?",
+    editTitle = "Edit “{name}”",
+    replaceTitle = "Replace “{name}”",
+    editSub = "Variant {key} · click an app to remove it",
+    captureSub = "Current layout · click an app to exclude it",
+    namePlaceholder = "Profile name",
+    cancel = "Cancel",
+    save = "Save",
+    noneKept = "No app kept",
+    noWindows = "No visible window on this screen",
+    nameRules = "Letters, digits, - and _",
+    removes = "Removes {apps} from every variant",
+    noChange = "No app changes",
+    renames = "renames to {name}",
+    copies = "saves a copy {name}",
+    replacesVariant = "Replaces variant {key} of {name}",
+    creates = "Creates {name} for this screen ({key}) and as default elsewhere",
+    unknown = "Unknown layout: ",
+    applied = "Layout ",
+    saved = "Profile “{name}” saved",
+    unreadable = "Windr: {name} is unreadable",
+  },
+  fr = {
+    title = "Layouts",
+    capture = "Capturer",
+    newProfile = "Nouveau profil",
+    currentLayout = "Disposition actuelle",
+    apply = "appliquer",
+    captureKey = "capturer",
+    dragHint = "glisser pour réordonner",
+    close = "fermer",
+    app = "app", apps = "apps",
+    active = "Actif",
+    closed = "(fermée)",
+    editTip = "Modifier les apps du profil",
+    replaceTip = "Remplacer par la disposition actuelle",
+    deleteTip = "Supprimer",
+    restoreTip = "Rétablir la version d’origine",
+    deleteConfirm = "Supprimer ?",
+    restoreConfirm = "Rétablir ?",
+    editTitle = "Modifier « {name} »",
+    replaceTitle = "Remplacer « {name} »",
+    editSub = "Variante {key} · clique sur une app pour la retirer",
+    captureSub = "Disposition actuelle · clique sur une app pour l’exclure",
+    namePlaceholder = "Nom du profil",
+    cancel = "Annuler",
+    save = "Enregistrer",
+    noneKept = "Aucune app conservée",
+    noWindows = "Aucune fenêtre visible sur cet écran",
+    nameRules = "Lettres, chiffres, - et _",
+    removes = "Retire {apps} de toutes les variantes",
+    noChange = "Aucun changement d’apps",
+    renames = "renomme en {name}",
+    copies = "enregistre une copie {name}",
+    replacesVariant = "Remplace la variante {key} de {name}",
+    creates = "Crée {name} pour cet écran ({key}) et par défaut ailleurs",
+    unknown = "Layout inconnu : ",
+    applied = "Layout ",
+    saved = "Profil « {name} » enregistré",
+    unreadable = "Windr : {name} illisible",
+  },
+}
+
+local T = STRINGS.en
+
+local function pickLanguage()
+  local lang = config.language
+  if lang == "auto" then
+    local preferred = hs.host.locale.preferredLanguages()[1] or "en"
+    lang = preferred:match("^(%a%a)")
+  end
+  T = STRINGS[lang] or STRINGS.en
+end
+
+local function tr(key, name) return (T[key]:gsub("{name}", name or "")) end
 
 local layoutsRef = {}
 local menu, panel, usercontent, toggleHotkey
@@ -61,17 +160,17 @@ local function setCurrent(name)
   hs.settings.set("windr.current", name)
 end
 
--- ---------- Profils capturés (JSON) ----------
+-- ---------- Captured profiles (JSON) ----------
 local function loadCustom()
   local f = io.open(config.profilesFile, "r")
   if not f then return {} end
   local ok, data = pcall(hs.json.decode, f:read("a"))
   f:close()
   if not ok or type(data) ~= "table" then
-    hs.alert.show("Windr : " .. config.profilesFile .. " illisible")
+    hs.alert.show(tr("unreadable", config.profilesFile))
     return {}
   end
-  -- Les clés JSON sont des chaînes : "3840" -> 3840
+  -- JSON keys are strings: "3840" -> 3840
   local out = {}
   for name, set in pairs(data) do
     out[name] = {}
@@ -91,7 +190,7 @@ local function writeCustom()
   f:close()
 end
 
--- Profils affichés = profils de départ, avec les profils capturés par-dessus
+-- Displayed profiles = starter profiles, with captured profiles layered on top
 local function rebuild()
   for name in pairs(layoutsRef) do layoutsRef[name] = nil end
   for name, set in pairs(config.layouts) do
@@ -104,7 +203,8 @@ local function rebuild()
   end
 end
 
--- ---------- Ordre des profils ----------
+-- ---------- Profile order ----------
+-- Order chosen by drag and drop, then alphabetical for unranked profiles
 local function orderedNames()
   local rank = {}
   for i, name in ipairs(hs.settings.get("windr.order") or {}) do rank[name] = i end
@@ -124,7 +224,7 @@ local function renameInOrder(from, to)
   hs.settings.set("windr.order", order)
 end
 
--- ⌘⌥⌃1..9 (ou les modificateurs choisis) suivent l'ordre du panneau
+-- ⌘⌥⌃1..9 (or the chosen modifiers) follow the panel order
 local function bindProfileHotkeys()
   for _, hk in ipairs(profileHotkeys) do hk:delete() end
   profileHotkeys = {}
@@ -135,14 +235,14 @@ local function bindProfileHotkeys()
   end
 end
 
--- ---------- Application d'un profil ----------
+-- ---------- Applying a profile ----------
 --- Windr:apply(name)
 --- Method
---- Applique le profil `name` sur l'écran principal (variante de la largeur d'écran, sinon "default").
+--- Applies profile `name` on the main screen (variant for the screen width, otherwise "default").
 function M:apply(name)
   local set = layoutsRef[name]
   if not set then
-    hs.alert.show("Layout inconnu : " .. tostring(name))
+    hs.alert.show(T.unknown .. tostring(name))
     return
   end
   local screen = hs.screen.mainScreen()
@@ -159,10 +259,10 @@ function M:apply(name)
     end
   end
   setCurrent(name)
-  hs.alert.show("Layout " .. name)
+  hs.alert.show(T.applied .. name)
 end
 
--- ---------- Icônes d'apps (data URL, en cache) ----------
+-- ---------- App icons (data URLs, cached) ----------
 local function iconFor(appName)
   if iconCache[appName] ~= nil then return iconCache[appName] end
   local path
@@ -173,7 +273,7 @@ local function iconFor(appName)
     if hs.fs.attributes(guess) then path = guess end
   end
   if not path then
-    -- Nom localisé (« Réglages Système » -> System Settings.app) : Spotlight connaît le nom affiché
+    -- Localized name ("Réglages Système" -> System Settings.app): Spotlight knows the display name
     local query = string.format("kMDItemContentType == 'com.apple.application-bundle' && kMDItemDisplayName == '%s'",
                                 (appName:gsub("'", "\\'")))
     local out = hs.execute("mdfind " .. string.format("%q", query) .. " | head -1")
@@ -189,11 +289,11 @@ local function iconFor(appName)
   return url
 end
 
--- ---------- Capture de la disposition actuelle ----------
+-- ---------- Capturing the current layout ----------
 local function r3(v) return math.floor(math.max(0, math.min(1, v)) * 1000 + 0.5) / 1000 end
 
--- Une fenêtre par app (la plus en avant), sur l'écran principal, en fractions de screen:frame()
--- comme moveToUnit dans Windr:apply.
+-- One window per app (the frontmost one), on the main screen, as fractions of screen:frame()
+-- like moveToUnit in Windr:apply.
 local function captureCurrent()
   local screen = hs.screen.mainScreen()
   local sf = screen:frame()
@@ -216,8 +316,8 @@ local function normalizeName(name)
   return (tostring(name or ""):lower():gsub("^%s+", ""):gsub("%s+$", ""):gsub("%s+", "-"):gsub("[^%w_-]", ""):gsub("%-%-+", "-"))
 end
 
--- Enregistre `snapshot` sous `name` pour la largeur d'écran capturée.
--- Un nouveau profil sert aussi de "default" pour les autres écrans.
+-- Saves `snapshot` under `name` for the captured screen width.
+-- A new profile is also used as "default" on other screens.
 local function saveProfile(name, snapshot)
   name = normalizeName(name)
   if name == "" or not next(snapshot.rects) then return false end
@@ -232,7 +332,7 @@ local function saveProfile(name, snapshot)
   return name
 end
 
--- Édition : retire `excluded` de toutes les variantes de `from`, et renomme si `name` diffère
+-- Editing: removes `excluded` from every variant of `from`, and renames if `name` differs
 local function editProfile(from, name, excluded)
   name = normalizeName(name)
   local src = layoutsRef[from]
@@ -263,18 +363,18 @@ end
 
 --- Windr:save(name)
 --- Method
---- Enregistre la disposition actuelle sous `name` (ex. hs -c 'spoon.Windr:save("dev")').
+--- Saves the current layout under `name` (e.g. hs -c 'spoon.Windr:save("dev")').
 function M:save(name)
   local saved = saveProfile(name, captureCurrent())
   if saved then
     rebuild()
     bindProfileHotkeys()
-    hs.alert.show("Profil « " .. saved .. " » enregistré")
+    hs.alert.show(tr("saved", saved))
   end
   return saved
 end
 
--- ---------- Données envoyées au panneau ----------
+-- ---------- Data sent to the panel ----------
 local function toApps(layout, order)
   local apps = {}
   local names = order
@@ -321,13 +421,14 @@ local function buildData()
   local cols = columns(#profiles + 1)
 
   return {
+    t = T,
     screen = { name = screen:name(), w = sf.w, h = sf.h, key = tostring(key),
                label = math.floor(full.w) .. " × " .. math.floor(full.h) },
     current = M.current,
     cols = cols, cardW = CARD_W, gap = GAP,
     contentW = cols * CARD_W + (cols - 1) * GAP,
     profiles = profiles,
-    -- arrière -> avant, pour que la fenêtre au premier plan soit peinte en dernier
+    -- back to front, so the frontmost window is painted last
     capture = toApps(pending.rects, backToFront),
   }
 end
@@ -465,6 +566,10 @@ const D = ]==]
 local HTML_TAIL = [==[;
 const post = m => webkit.messageHandlers.windr.postMessage(m);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const T = D.t;
+// Fills {name}, {key}, {apps} placeholders; values are inserted as given (escape them first)
+const fmt = (s, vars) => s.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '');
+const plural = n => `${n} ${n > 1 ? T.apps : T.app}`;
 const profiles = Object.values(D.profiles || {});
 const capture = Object.values(D.capture || {});
 const ratio = D.screen.h / D.screen.w;
@@ -476,15 +581,15 @@ const ICON = {
   edit: '<svg viewBox="0 0 16 16"><path d="M10.5 2.5l3 3L6 13H3v-3z"/><path d="M9 4l3 3"/></svg>',
 };
 const app = document.getElementById('app');
-let view = 'grid', confirmDel = -1, target = null;
+let view = 'grid', confirmDel = -1;
 const excluded = new Set();
 let sel = Math.max(0, profiles.findIndex(p => p.name === D.current));
 
 const fit = () => requestAnimationFrame(() => post({ type: 'size', h: document.body.offsetHeight }));
 const normalize = s => s.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9_-]/g, '').replace(/-{2,}/g, '-');
 
-// Profils enregistrés : une tuile par emplacement (apps superposées regroupées),
-// les plus grandes dessinées d'abord pour que les petites restent visibles.
+// Saved profiles: one tile per slot (stacked apps are grouped),
+// largest drawn first so smaller ones stay visible.
 function grouped(apps) {
   const slots = new Map();
   for (const a of apps) {
@@ -498,7 +603,7 @@ function grouped(apps) {
 function tiles(apps, width) {
   const height = width * ratio;
   const slots = grouped(apps);
-  // Une fenêtre recouverte par une autre affiche ses icônes en haut à gauche, sans nom
+  // A window covered by another one shows its icons top-left, without a label
   const covers = (o, s) => o !== s && o.x < s.x + s.w / 2 && o.x + o.w > s.x + s.w / 2
                                     && o.y < s.y + s.h / 2 && o.y + o.h > s.y + s.h / 2;
   return slots.map((s, i) => {
@@ -511,7 +616,7 @@ function tiles(apps, width) {
     const label = !covered && (!icon || (pw >= 54 && ph >= 52));
     const running = s.members.some(m => m.running);
     const cls = running ? '' : ' off';
-    const title = s.members.map(m => m.name + (m.running ? '' : ' (fermée)')).join(' + ');
+    const title = s.members.map(m => m.name + (m.running ? '' : ' ' + T.closed)).join(' + ');
     return `<div class="win${cls}" data-app="${esc(s.name)}" title="${esc(title)}"
       style="left:${s.x * 100}%;top:${s.y * 100}%;width:${s.w * 100}%;height:${s.h * 100}%">
       <div class="tile${covered ? ' covered' : ''}">${icon ? `<div class="icons">${withIcon.slice(0, maxIcons).map(m => `<img src="${m.icon}">`).join('')}</div>` : ''}
@@ -523,14 +628,14 @@ function card(p, i) {
   const apps = Object.values(p.apps || {});
   const current = p.name === D.current;
   const del = p.custom ? `<button class="act danger${confirmDel === i ? ' confirm' : ''}" data-act="delete"
-      title="${p.builtin ? 'Rétablir la version d’origine' : 'Supprimer'}">${ICON.x}${confirmDel === i ? (p.builtin ? 'Rétablir ?' : 'Supprimer ?') : ''}</button>` : '';
+      title="${p.builtin ? T.restoreTip : T.deleteTip}">${ICON.x}${confirmDel === i ? (p.builtin ? T.restoreConfirm : T.deleteConfirm) : ''}</button>` : '';
   return `<div class="card" data-i="${i}">
     <div class="screen" style="height:${Math.round(innerW * ratio)}px">${tiles(apps, innerW)}
-      <div class="actions"><button class="act" data-act="edit" title="Modifier les apps du profil">${ICON.edit}</button><button class="act" data-act="update" title="Remplacer par la disposition actuelle">${ICON.frame}</button>${del}</div>
+      <div class="actions"><button class="act" data-act="edit" title="${T.editTip}">${ICON.edit}</button><button class="act" data-act="update" title="${T.replaceTip}">${ICON.frame}</button>${del}</div>
     </div>
     <div class="meta"><div class="txt">
-      <div class="name">${esc(p.name)}${current ? '<i class="dot" title="Actif"></i>' : ''}</div>
-      <div class="sub">${apps.length} app${apps.length > 1 ? 's' : ''} · ${p.variant}</div>
+      <div class="name">${esc(p.name)}${current ? `<i class="dot" title="${T.active}"></i>` : ''}</div>
+      <div class="sub">${plural(apps.length)} · ${p.variant}</div>
     </div><kbd class="num">${i < 9 ? i + 1 : ''}</kbd></div>
   </div>`;
 }
@@ -538,21 +643,21 @@ function card(p, i) {
 function renderGrid() {
   view = 'grid';
   app.innerHTML = `
-    <header><div><h1>Layouts</h1><p>${esc(D.screen.name)}</p></div><span class="chip">${D.screen.label}</span></header>
+    <header><div><h1>${T.title}</h1><p>${esc(D.screen.name)}</p></div><span class="chip">${D.screen.label}</span></header>
     <div class="grid" style="grid-template-columns:repeat(${D.cols}, ${D.cardW}px);gap:${D.gap}px">
       ${profiles.map(card).join('')}
       <div class="card new" data-i="${profiles.length}">
-        <div class="screen" style="height:${Math.round(innerW * ratio)}px">${ICON.frame}Capturer</div>
-        <div class="meta"><div class="txt"><div class="name">Nouveau profil</div>
-          <div class="sub">Disposition actuelle</div></div><kbd>N</kbd></div>
+        <div class="screen" style="height:${Math.round(innerW * ratio)}px">${ICON.frame}${T.capture}</div>
+        <div class="meta"><div class="txt"><div class="name">${T.newProfile}</div>
+          <div class="sub">${T.currentLayout}</div></div><kbd>N</kbd></div>
       </div>
     </div>
-    <footer><span><kbd>1</kbd>–<kbd>9</kbd> appliquer</span><span><kbd>N</kbd> capturer</span><span>glisser pour réordonner</span><span><kbd>esc</kbd> fermer</span></footer>`;
+    <footer><span><kbd>1</kbd>–<kbd>9</kbd> ${T.apply}</span><span><kbd>N</kbd> ${T.captureKey}</span><span>${T.dragHint}</span><span><kbd>esc</kbd> ${T.close}</span></footer>`;
   select(sel);
   fit();
 }
 
-// Éditeur : mode 'capture' (disposition actuelle) ou 'edit' (apps déjà enregistrées du profil)
+// Editor: 'capture' mode (current layout) or 'edit' mode (the profile's saved apps)
 let editMode = 'capture', editFrom = null, editApps = [];
 
 function renderEditor(mode, name) {
@@ -563,17 +668,17 @@ function renderEditor(mode, name) {
   const p = profiles.find(q => q.name === name);
   editApps = mode === 'edit' ? Object.values(p.apps || {}) : capture;
   const W = D.contentW;
-  const title = mode === 'edit' ? `Modifier « ${esc(name)} »` : name ? `Remplacer « ${esc(name)} »` : 'Nouveau profil';
-  const sub = mode === 'edit' ? `Variante ${p.variant} · clique sur une app pour la retirer`
-    : `Disposition actuelle · clique sur une app pour l’exclure`;
+  const title = mode === 'edit' ? fmt(T.editTitle, { name: esc(name) })
+    : name ? fmt(T.replaceTitle, { name: esc(name) }) : T.newProfile;
+  const sub = mode === 'edit' ? fmt(T.editSub, { key: p.variant }) : T.captureSub;
   app.innerHTML = `
     <header><div><h1>${title}</h1><p>${sub}</p></div><span class="chip">${D.screen.label}</span></header>
     <div class="screen big" id="preview" style="height:${Math.round(W * ratio)}px"></div>
     <div class="apps" id="apps"></div>
     <div class="form">
-      <input id="name" placeholder="Nom du profil" value="${esc(name || '')}" spellcheck="false" autocomplete="off">
-      <button class="btn ghost" data-cancel>Annuler</button>
-      <button class="btn primary" data-save>Enregistrer</button>
+      <input id="name" placeholder="${T.namePlaceholder}" value="${esc(name || '')}" spellcheck="false" autocomplete="off">
+      <button class="btn ghost" data-cancel>${T.cancel}</button>
+      <button class="btn primary" data-save>${T.save}</button>
     </div>
     <p class="hint" id="hint"></p>`;
   const input = document.getElementById('name');
@@ -586,7 +691,7 @@ function renderEditor(mode, name) {
 function refreshEditor() {
   const kept = editApps.filter(a => !excluded.has(a.name));
   document.getElementById('preview').innerHTML = kept.length ? tiles(kept, D.contentW)
-    : `<div class="none">${editApps.length ? 'Aucune app conservée' : 'Aucune fenêtre visible sur cet écran'}</div>`;
+    : `<div class="none">${editApps.length ? T.noneKept : T.noWindows}</div>`;
   document.getElementById('apps').innerHTML = editApps.map(a => `
     <button class="app${excluded.has(a.name) ? ' excluded' : ''}" data-app="${esc(a.name)}">
       ${a.icon ? `<img src="${a.icon}">` : ''}<span>${esc(a.name)}</span>${excluded.has(a.name) ? ICON.plus : ICON.x}</button>`).join('');
@@ -600,17 +705,17 @@ function updateHint() {
   const kept = editApps.length - excluded.size;
   document.querySelector('[data-save]').disabled = !name || !kept;
   const hint = document.getElementById('hint');
-  if (!name) { hint.innerHTML = 'Lettres, chiffres, - et _'; return; }
+  const b = s => `<b>${esc(s)}</b>`;
+  if (!name) { hint.innerHTML = T.nameRules; return; }
   if (editMode === 'edit') {
     const from = profiles.find(p => p.name === editFrom);
-    const removed = excluded.size ? `Retire ${[...excluded].map(n => `<b>${esc(n)}</b>`).join(', ')} de toutes les variantes` : 'Aucun changement d’apps';
+    const removed = excluded.size ? fmt(T.removes, { apps: [...excluded].map(b).join(', ') }) : T.noChange;
     hint.innerHTML = name === editFrom ? removed
-      : from.custom && !from.builtin ? `${removed} · renomme en <b>${esc(name)}</b>`
-      : `${removed} · enregistre une copie <b>${esc(name)}</b>`;
+      : `${removed} · ${fmt(from.custom && !from.builtin ? T.renames : T.copies, { name: b(name) })}`;
     return;
   }
-  hint.innerHTML = exists ? `Remplace la variante <b>${D.screen.key}</b> de <b>${esc(name)}</b>`
-    : `Crée <b>${esc(name)}</b> pour cet écran (${D.screen.key}) et par défaut ailleurs`;
+  hint.innerHTML = exists ? fmt(T.replacesVariant, { key: b(D.screen.key), name: b(name) })
+    : fmt(T.creates, { name: b(name), key: D.screen.key });
 }
 
 function save() {
@@ -678,11 +783,11 @@ document.addEventListener('keydown', e => {
   if (moves[e.key]) { e.preventDefault(); select((sel + moves[e.key] + n) % n); }
 });
 
-// ---------- Glisser-déposer pour réordonner ----------
+// ---------- Drag and drop to reorder ----------
 let drag = null, justDragged = false;
 const profileCards = () => [...document.querySelectorAll('.card:not(.new)')];
 
-// Anime les cartes de leur ancienne position vers la nouvelle (FLIP)
+// Animates cards from their old position to the new one (FLIP)
 function flip(mutate) {
   const els = [...document.querySelectorAll('.card')];
   const before = new Map(els.map(el => [el, el.getBoundingClientRect()]));
@@ -744,7 +849,7 @@ document.addEventListener('mouseup', () => {
 renderGrid();
 </script></body></html>]==]
 
--- ---------- Panneau ----------
+-- ---------- Panel ----------
 local function hide()
   if panel and panel:isVisible() then
     panel:hide()
@@ -757,7 +862,7 @@ local function hideAndRefocus()
   if previousWin then previousWin:focus() end
 end
 
--- Après une modification : recalcule les profils et réaffiche le panneau à jour
+-- After a change: rebuild profiles and redraw the panel
 local function refresh(toast)
   rebuild()
   bindProfileHotkeys()
@@ -781,7 +886,7 @@ local function onMessage(msg)
       for _, appName in ipairs(body.excluded or {}) do pending.rects[appName] = nil end
       saved = saveProfile(body.name, pending)
     end
-    if saved then refresh("Profil « " .. saved .. " » enregistré") end
+    if saved then refresh(tr("saved", saved)) end
   elseif body.type == "delete" and custom[body.name] then
     custom[body.name] = nil
     writeCustom()
@@ -815,7 +920,7 @@ end
 
 --- Windr:show()
 --- Method
---- Ouvre le panneau sous l'icône de la barre de menus.
+--- Opens the panel under the menu bar icon.
 function M:show(prev)
   previousWin = prev or hs.window.focusedWindow()
   local data = buildData()
@@ -825,7 +930,7 @@ function M:show(prev)
   local width = PAD * 2 + data.contentW + 2
   local height = PAD * 2 + 48 + rows * (previewH + 52) + (rows - 1) * GAP + 32
 
-  -- Sous l'icône, contenu dans l'écran
+  -- Under the icon, kept inside the screen
   local mf = menu:frame()
   local scr = (hs.screen.find(hs.geometry.point(mf.x, mf.y)) or hs.screen.mainScreen()):frame()
   local x = mf.x + mf.w / 2 - width / 2
@@ -845,17 +950,17 @@ end
 
 --- Windr:toggle()
 --- Method
---- Ouvre ou ferme le panneau.
+--- Opens or closes the panel.
 function M:toggle()
   if panel and panel:isVisible() then
     hideAndRefocus()
   elseif hs.timer.secondsSinceEpoch() - lastHide > 0.3 then
-    -- évite la réouverture quand le clic sur l'icône vient de fermer le panneau
+    -- don't reopen when the click on the icon has just closed the panel
     M:show()
   end
 end
 
--- ---------- Icône barre de menus ----------
+-- ---------- Menu bar icon ----------
 local function makeIcon()
   local c = hs.canvas.new({ x = 0, y = 0, w = 18, h = 18 })
   local function el(props)
@@ -873,14 +978,16 @@ end
 
 --- Windr:start([options])
 --- Method
---- Démarre Windr. Options (toutes facultatives) :
----  * hotkey : { mods, key } pour ouvrir le panneau (défaut ⌘⌥⌃Espace), false pour aucun
----  * profileHotkeys : modificateurs pour appliquer les profils 1-9 (ex. {"cmd","alt","ctrl"})
----  * layouts : profils de départ, même format que le fichier JSON
----  * profilesFile : chemin du fichier des profils capturés
----  * ignore : liste de bundle IDs à ne jamais capturer
+--- Starts Windr. Options (all optional):
+---  * hotkey: { mods, key } to open the panel (default ⌘⌥⌃Space), false for none
+---  * profileHotkeys: modifiers to apply profiles 1-9 (e.g. {"cmd","alt","ctrl"})
+---  * layouts: starter profiles, same format as the JSON file
+---  * profilesFile: path of the captured profiles file
+---  * ignore: list of bundle IDs that are never captured
+---  * language: "auto" (follows macOS), "en" or "fr"
 function M:start(options)
   for k, v in pairs(options or {}) do config[k] = v end
+  pickLanguage()
   for _, id in ipairs(config.ignore or {}) do IGNORED[id] = true end
   for name in pairs(config.layouts) do builtin[name] = true end
   custom = loadCustom()
@@ -900,7 +1007,7 @@ end
 
 --- Windr:stop()
 --- Method
---- Retire l'icône et les raccourcis.
+--- Removes the icon and shortcuts.
 function M:stop()
   hide()
   if menu then menu:delete(); menu = nil end
