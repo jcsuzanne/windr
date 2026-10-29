@@ -56,6 +56,41 @@ Enregistre, puis icône marteau → **Reload Config**. Une nouvelle icône ▥ a
 
 ---
 
+## Mise à jour
+
+Tes profils, leur ordre et tes options sont **conservés** : ils sont dans `~/.hammerspoon/windr_layouts.json` et dans ton `init.lua`, en dehors du dossier du Spoon. Une mise à jour remplace seulement `~/.hammerspoon/Spoons/Windr.spoon`.
+
+**Option 1 : une commande dans le terminal (recommandé)**
+
+```sh
+cd "${TMPDIR:-/tmp}" && curl -fsSL -o Windr.zip https://github.com/jcsuzanne/windr/raw/main/dist/Windr.zip \
+  && rm -rf windr-update && unzip -q Windr.zip -d windr-update \
+  && rm -rf ~/.hammerspoon/Spoons/Windr.spoon && cp -R windr-update/Windr.spoon ~/.hammerspoon/Spoons/
+```
+
+Puis icône marteau → **Reload Config**. Si tu as installé la commande `hs` (voir plus bas), `hs -c 'hs.reload()'` fait la même chose.
+
+**Option 2 : à la main**
+
+1. [Télécharge Windr.zip](https://github.com/jcsuzanne/windr/raw/main/dist/Windr.zip) et décompresse-le.
+2. Supprime l'ancien dossier `~/.hammerspoon/Spoons/Windr.spoon`. Dans le Finder : `⌘⇧G`, puis colle `~/.hammerspoon/Spoons`.
+3. Double-clique sur le nouveau `Windr.spoon`, ou copie-le dans ce dossier.
+4. Icône marteau → **Reload Config**.
+
+**Option 3 : avec git**, si tu préfères suivre le repo
+
+```sh
+git clone https://github.com/jcsuzanne/windr.git ~/Code/windr
+rm -rf ~/.hammerspoon/Spoons/Windr.spoon
+ln -s ~/Code/windr/Windr.spoon ~/.hammerspoon/Spoons/Windr.spoon
+```
+
+Ensuite, mettre à jour se résume à `git -C ~/Code/windr pull` puis **Reload Config**.
+
+**Quelle version j'ai ?** Icône marteau → `Console`, tape `spoon.Windr.version` puis Entrée.
+
+---
+
 ## Premiers pas : créer ton premier profil
 
 1. Place tes fenêtres comme tu les aimes (par exemple l'éditeur à gauche, le navigateur à droite).
@@ -158,7 +193,6 @@ Ensuite `layout dev` applique le profil `dev`, et `hs -c 'spoon.Windr:save("dev"
 - **Les fenêtres ne bougent pas** : vérifie l'autorisation Accessibilité de Hammerspoon. Si elle est déjà cochée, décoche-la puis recoche-la, et relance Hammerspoon.
 - **L'icône n'apparaît pas** : icône marteau → `Console` pour voir l'erreur. Vérifie que `Windr.spoon` est bien dans `~/.hammerspoon/Spoons/`.
 - **Une app n'est pas déplacée** : elle doit être ouverte. Les noms d'apps sont ceux affichés par macOS (par exemple `Google Chrome`, pas `chrome`).
-- **Mettre à jour** : télécharge le dernier zip et double-clique à nouveau sur `Windr.spoon` (tes profils sont conservés), puis Reload Config.
 - **Désinstaller** : retire les deux lignes de `init.lua`, puis supprime `~/.hammerspoon/Spoons/Windr.spoon` et `~/.hammerspoon/windr_layouts.json`.
 
 ---

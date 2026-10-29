@@ -56,6 +56,41 @@ Save, then hammer icon → **Reload Config**. A new icon (a rectangle split into
 
 ---
 
+## Updating
+
+Your profiles, their order and your options are **kept**: they live in `~/.hammerspoon/windr_layouts.json` and in your `init.lua`, outside the Spoon folder. An update only replaces `~/.hammerspoon/Spoons/Windr.spoon`.
+
+**Option 1: one terminal command (recommended)**
+
+```sh
+cd "${TMPDIR:-/tmp}" && curl -fsSL -o Windr.zip https://github.com/jcsuzanne/windr/raw/main/dist/Windr.zip \
+  && rm -rf windr-update && unzip -q Windr.zip -d windr-update \
+  && rm -rf ~/.hammerspoon/Spoons/Windr.spoon && cp -R windr-update/Windr.spoon ~/.hammerspoon/Spoons/
+```
+
+Then hammer icon → **Reload Config**. If you installed the `hs` command (see below), `hs -c 'hs.reload()'` does the same.
+
+**Option 2: by hand**
+
+1. [Download Windr.zip](https://github.com/jcsuzanne/windr/raw/main/dist/Windr.zip) and unzip it.
+2. Delete the old `~/.hammerspoon/Spoons/Windr.spoon` folder. In Finder: `⌘⇧G`, paste `~/.hammerspoon/Spoons`.
+3. Double-click the new `Windr.spoon`, or copy it into that folder.
+4. Hammer icon → **Reload Config**.
+
+**Option 3: with git**, if you'd rather follow the repo
+
+```sh
+git clone https://github.com/jcsuzanne/windr.git ~/Code/windr
+rm -rf ~/.hammerspoon/Spoons/Windr.spoon
+ln -s ~/Code/windr/Windr.spoon ~/.hammerspoon/Spoons/Windr.spoon
+```
+
+After that, updating is just `git -C ~/Code/windr pull` followed by **Reload Config**.
+
+**Which version do I have?** Hammer icon → `Console`, type `spoon.Windr.version` and press Enter.
+
+---
+
 ## Getting started: create your first profile
 
 1. Arrange your windows the way you like them (for example, editor on the left, browser on the right).
@@ -158,7 +193,6 @@ Then `layout dev` applies the `dev` profile, and `hs -c 'spoon.Windr:save("dev")
 - **Windows don't move**: check Hammerspoon's Accessibility permission. If it's already on, turn it off and on again, then restart Hammerspoon.
 - **The icon doesn't appear**: hammer icon → `Console` to see the error. Make sure `Windr.spoon` is in `~/.hammerspoon/Spoons/`.
 - **An app isn't moved**: it has to be open. App names are the ones macOS displays (for example `Google Chrome`, not `chrome`).
-- **Update**: download the latest zip and double-click `Windr.spoon` again (your profiles are kept), then Reload Config.
 - **Uninstall**: remove the two lines from `init.lua`, then delete `~/.hammerspoon/Spoons/Windr.spoon` and `~/.hammerspoon/windr_layouts.json`.
 
 ---
