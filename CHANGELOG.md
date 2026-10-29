@@ -11,6 +11,9 @@ Your version: hammer icon → `Console` → `spoon.Windr.version`, or hover the 
 
 ## [Unreleased]
 
+### Changed
+- Downloads now come from [GitHub Releases](https://github.com/jcsuzanne/windr/releases); the zip is no longer stored in the repo.
+
 ## [1.1.1] - 2026-10-29
 
 ### Fixed

@@ -35,7 +35,7 @@ Launch Hammerspoon, then:
 
 ### 2. Install Windr
 
-[**Download Windr.zip**](https://github.com/jcsuzanne/windr/raw/main/dist/Windr.zip), unzip it, then **double-click `Windr.spoon`**. Hammerspoon installs it into `~/.hammerspoon/Spoons/` for you.
+[**Download Windr.zip**](https://github.com/jcsuzanne/windr/releases/latest/download/Windr.zip), unzip it, then **double-click `Windr.spoon`**. Hammerspoon installs it into `~/.hammerspoon/Spoons/` for you.
 
 If double-clicking does nothing, copy it manually:
 
@@ -63,7 +63,7 @@ Your profiles, their order and your options are **kept**: they live in `~/.hamme
 **Option 1: one terminal command (recommended)**
 
 ```sh
-cd "${TMPDIR:-/tmp}" && curl -fsSL -o Windr.zip https://github.com/jcsuzanne/windr/raw/main/dist/Windr.zip \
+cd "${TMPDIR:-/tmp}" && curl -fsSL -o Windr.zip https://github.com/jcsuzanne/windr/releases/latest/download/Windr.zip \
   && rm -rf windr-update && unzip -q Windr.zip -d windr-update \
   && rm -rf ~/.hammerspoon/Spoons/Windr.spoon && cp -R windr-update/Windr.spoon ~/.hammerspoon/Spoons/
 ```
@@ -72,7 +72,7 @@ Then hammer icon → **Reload Config**. If you installed the `hs` command (see b
 
 **Option 2: by hand**
 
-1. [Download Windr.zip](https://github.com/jcsuzanne/windr/raw/main/dist/Windr.zip) and unzip it.
+1. [Download Windr.zip](https://github.com/jcsuzanne/windr/releases/latest/download/Windr.zip) and unzip it.
 2. Delete the old `~/.hammerspoon/Spoons/Windr.spoon` folder. In Finder: `⌘⇧G`, paste `~/.hammerspoon/Spoons`.
 3. Double-click the new `Windr.spoon`, or copy it into that folder.
 4. Hammer icon → **Reload Config**.
