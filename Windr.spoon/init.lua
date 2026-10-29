@@ -25,6 +25,9 @@ obj.license = "MIT - https://opensource.org/licenses/MIT"
 local M = obj
 
 local CARD_W, GAP, PAD = 196, 10, 16
+-- Transparent margin around the panel so its CSS shadow follows the rounded corners
+-- (the native window shadow is rectangular)
+local SHADOW = 28
 
 local config = {
   -- Global shortcut to open/close the panel (false to disable)
@@ -425,7 +428,7 @@ local function buildData()
     screen = { name = screen:name(), w = sf.w, h = sf.h, key = tostring(key),
                label = math.floor(full.w) .. " × " .. math.floor(full.h) },
     current = M.current,
-    cols = cols, cardW = CARD_W, gap = GAP,
+    cols = cols, cardW = CARD_W, gap = GAP, shadow = SHADOW,
     contentW = cols * CARD_W + (cols - 1) * GAP,
     profiles = profiles,
     -- back to front, so the frontmost window is painted last
@@ -456,14 +459,18 @@ local HTML_HEAD = [==[
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html { background: transparent; }
+/* The panel is #app, not body: a body background would spread to the whole (rectangular) window */
 body {
   font: 13px/1.3 -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif; color: var(--fg);
-  background: var(--bg); border: 1px solid var(--line); border-radius: 14px;
-  box-shadow: inset 0 1px 0 var(--highlight);
-  padding: 16px; overflow: hidden; cursor: default;
-  -webkit-user-select: none; -webkit-font-smoothing: antialiased;
+  cursor: default; -webkit-user-select: none; -webkit-font-smoothing: antialiased;
 }
-#app { animation: in .2s cubic-bezier(.2,.8,.2,1); }
+#app {
+  background: var(--bg); border: 1px solid var(--line); border-radius: 14px;
+  box-shadow: inset 0 1px 0 var(--highlight), 0 0 0 .5px rgba(0,0,0,.35),
+              0 6px 20px rgba(0,0,0,.28), 0 1px 4px rgba(0,0,0,.12);
+  padding: 16px; overflow: hidden;
+  animation: in .2s cubic-bezier(.2,.8,.2,1);
+}
 @keyframes in { from { opacity: 0; transform: translateY(-4px) scale(.985); } }
 button { font: inherit; color: inherit; background: none; border: 0; cursor: default; }
 svg { display: block; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
@@ -585,7 +592,8 @@ let view = 'grid', confirmDel = -1;
 const excluded = new Set();
 let sel = Math.max(0, profiles.findIndex(p => p.name === D.current));
 
-const fit = () => requestAnimationFrame(() => post({ type: 'size', h: document.body.offsetHeight }));
+document.body.style.margin = D.shadow + 'px';
+const fit = () => requestAnimationFrame(() => post({ type: 'size', h: app.offsetHeight + 2 * D.shadow }));
 const normalize = s => s.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9_-]/g, '').replace(/-{2,}/g, '-');
 
 // Saved profiles: one tile per slot (stacked apps are grouped),
@@ -741,6 +749,8 @@ document.addEventListener('mouseover', e => {
 });
 
 document.addEventListener('click', e => {
+  // Click in the transparent margin around the panel = click outside
+  if (e.target === document.documentElement || e.target === document.body) return post({ type: 'close' });
   if (justDragged) return;
   if (view === 'editor') {
     const chip = e.target.closest('.app');
@@ -909,7 +919,7 @@ local function ensurePanel()
     :level(hs.drawing.windowLevels.popUpMenu)
     :behaviorAsLabels({ "canJoinAllSpaces", "transient" })
     :transparent(true)
-    :shadow(true)
+    :shadow(false)
     :allowTextEntry(true)
     :deleteOnClose(false)
     :windowCallback(function(action, _, state)
@@ -928,14 +938,15 @@ function M:show(prev)
   local rows = math.ceil(cards / data.cols)
   local previewH = math.floor((CARD_W - 12) * data.screen.h / data.screen.w)
   local width = PAD * 2 + data.contentW + 2
-  local height = PAD * 2 + 48 + rows * (previewH + 52) + (rows - 1) * GAP + 32
+  local height = PAD * 2 + 48 + rows * (previewH + 52) + (rows - 1) * GAP + 32 + SHADOW * 2
 
   -- Under the icon, kept inside the screen
   local mf = menu:frame()
   local scr = (hs.screen.find(hs.geometry.point(mf.x, mf.y)) or hs.screen.mainScreen()):frame()
   local x = mf.x + mf.w / 2 - width / 2
   x = math.max(scr.x + 8, math.min(x, scr.x + scr.w - width - 8))
-  local y = mf.y + mf.h + 6
+  local y = mf.y + mf.h + 6 - SHADOW
+  x, width = x - SHADOW, width + SHADOW * 2
 
   ensurePanel()
   panel:frame({ x = x, y = y, w = width, h = height })
