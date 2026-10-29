@@ -12,7 +12,7 @@ Windr adds an icon to the macOS menu bar. It opens a panel listing your **layout
 
 Windr is a plugin ("Spoon") for [Hammerspoon](https://www.hammerspoon.org), a free and open-source macOS automation tool.
 
-🇫🇷 [Version française](README.fr.md)
+🇫🇷 [Version française](README.fr.md) · 📋 [Changelog](CHANGELOG.md)
 
 > The interface follows your macOS language (English or French). See the `language` option to force one.
 
@@ -87,7 +87,7 @@ ln -s ~/Code/windr/Windr.spoon ~/.hammerspoon/Spoons/Windr.spoon
 
 After that, updating is just `git -C ~/Code/windr pull` followed by **Reload Config**.
 
-**Which version do I have?** Hammer icon → `Console`, type `spoon.Windr.version` and press Enter.
+**Which version do I have?** Hover the Windr icon in the menu bar, or hammer icon → `Console`, type `spoon.Windr.version` and press Enter. What changed in each version is in the [changelog](CHANGELOG.md).
 
 ---
 

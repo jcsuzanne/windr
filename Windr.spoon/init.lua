@@ -18,7 +18,7 @@ local obj = {}
 obj.__index = obj
 
 obj.name = "Windr"
-obj.version = "1.1"
+obj.version = "1.1.1"
 obj.author = "jc.suzanne"
 obj.license = "MIT - https://opensource.org/licenses/MIT"
 
@@ -1006,7 +1006,7 @@ function M:start(options)
 
   menu = hs.menubar.new()
   menu:setIcon(makeIcon(), true)
-  menu:setTooltip("Windr")
+  menu:setTooltip("Windr " .. obj.version)
   menu:setClickCallback(function() M:toggle() end)
 
   if config.hotkey then
