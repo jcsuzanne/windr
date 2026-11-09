@@ -6,6 +6,7 @@
 --- * Click a card (or 1-9 / arrows + Enter) to apply a profile
 --- * "Capture" (N) saves the current window arrangement as a new profile
 --- * Edit, replace, delete and reorder (drag and drop) profiles
+--- * Profiles are grouped by screen (one tab per screen resolution)
 ---
 --- Captured profiles are stored in ~/.hammerspoon/windr_layouts.json.
 --- The interface follows the macOS language (English or French).
@@ -18,7 +19,7 @@ local obj = {}
 obj.__index = obj
 
 obj.name = "Windr"
-obj.version = "1.1.1"
+obj.version = "1.2.0"
 obj.author = "jc.suzanne"
 obj.license = "MIT - https://opensource.org/licenses/MIT"
 
@@ -92,6 +93,12 @@ local STRINGS = {
     applied = "Layout ",
     saved = "Profile “{name}” saved",
     unreadable = "Windr: {name} is unreadable",
+    allScreens = "All screens",
+    everyScreen = "every screen",
+    thisScreen = "this screen",
+    switchScreen = "screen",
+    detachTip = "Remove from this screen (keeps the other screens)",
+    detachConfirm = "Remove?",
   },
   fr = {
     title = "Layouts",
@@ -131,6 +138,12 @@ local STRINGS = {
     applied = "Layout ",
     saved = "Profil « {name} » enregistré",
     unreadable = "Windr : {name} illisible",
+    allScreens = "Tous les écrans",
+    everyScreen = "tous les écrans",
+    thisScreen = "cet écran",
+    switchScreen = "écran",
+    detachTip = "Retirer de cet écran (garde les autres écrans)",
+    detachConfirm = "Retirer ?",
   },
 }
 
@@ -204,6 +217,13 @@ local function rebuild()
     layoutsRef[name] = layoutsRef[name] or {}
     for k, rect in pairs(set) do layoutsRef[name][k] = rect end
   end
+  -- Starter variants removed from a screen (a captured variant for that screen wins)
+  for name, keys in pairs(hs.settings.get("windr.hidden") or {}) do
+    for _, k in ipairs(keys) do
+      k = tonumber(k)
+      if layoutsRef[name] and k and not (custom[name] and custom[name][k]) then layoutsRef[name][k] = nil end
+    end
+  end
 end
 
 -- ---------- Profile order ----------
@@ -221,35 +241,80 @@ local function orderedNames()
   return names
 end
 
+-- ---------- Screens ----------
+-- A profile belongs to the screens it has a variant for (keyed by width);
+-- a profile with only a "default" variant belongs to every screen.
+local function screenKeysOf(set)
+  local keys = {}
+  for k in pairs(set) do if type(k) == "number" then keys[#keys + 1] = k end end
+  table.sort(keys, function(a, b) return a > b end)
+  return keys
+end
+
+local function belongsTo(set, key)
+  return set[key] ~= nil or #screenKeysOf(set) == 0
+end
+
+local function screenKey(screen) return math.floor(screen:fullFrame().w) end
+
+-- Remembers the name and size of each screen seen, to label its tab even when it is unplugged
+local function rememberScreen(screen)
+  local full, sf = screen:fullFrame(), screen:frame()
+  local key = tostring(math.floor(full.w))
+  local known = hs.settings.get("windr.screens") or {}
+  local entry = { name = screen:name(), w = sf.w, h = sf.h, fh = math.floor(full.h) }
+  local old = known[key]
+  if not old or old.name ~= entry.name or old.h ~= entry.h or old.fh ~= entry.fh then
+    known[key] = entry
+    hs.settings.set("windr.screens", known)
+  end
+  return known, key
+end
+
 local function renameInOrder(from, to)
   local order = hs.settings.get("windr.order") or {}
   for i, n in ipairs(order) do if n == from then order[i] = to end end
   hs.settings.set("windr.order", order)
 end
 
--- ⌘⌥⌃1..9 (or the chosen modifiers) follow the panel order
+-- ⌘⌥⌃1..9 (or the chosen modifiers) follow the panel order of the current screen
+local function namesForScreen(key)
+  local names = {}
+  for _, name in ipairs(orderedNames()) do
+    if belongsTo(layoutsRef[name], key) then names[#names + 1] = name end
+  end
+  return names
+end
+
 local function bindProfileHotkeys()
   for _, hk in ipairs(profileHotkeys) do hk:delete() end
   profileHotkeys = {}
   if not config.profileHotkeys then return end
-  for i, name in ipairs(orderedNames()) do
-    if i > 9 then break end
-    profileHotkeys[#profileHotkeys + 1] = hs.hotkey.bind(config.profileHotkeys, tostring(i), function() M:apply(name) end)
+  for i = 1, 9 do
+    profileHotkeys[i] = hs.hotkey.bind(config.profileHotkeys, tostring(i), function()
+      local name = namesForScreen(screenKey(hs.screen.mainScreen()))[i]
+      if name then M:apply(name) end
+    end)
   end
 end
 
 -- ---------- Applying a profile ----------
---- Windr:apply(name)
+--- Windr:apply(name[, variant])
 --- Method
---- Applies profile `name` on the main screen (variant for the screen width, otherwise "default").
-function M:apply(name)
+--- Applies profile `name` on the main screen: variant for the screen width, otherwise "default",
+--- otherwise `variant` (a screen width) or the profile's first screen variant.
+function M:apply(name, variant)
   local set = layoutsRef[name]
   if not set then
     hs.alert.show(T.unknown .. tostring(name))
     return
   end
   local screen = hs.screen.mainScreen()
-  local layout = set[math.floor(screen:fullFrame().w)] or set.default or {}
+  local layout = set[screenKey(screen)] or set.default or set[tonumber(variant) or false]
+  if not layout then
+    local keys = screenKeysOf(set)
+    layout = keys[1] and set[keys[1]] or {}
+  end
   for appName, r in pairs(layout) do
     local app = hs.application.get(appName)
     if app then
@@ -364,6 +429,53 @@ local function editProfile(from, name, excluded)
   return name
 end
 
+-- Removes the variant for screen `key` from `name`, keeping its other screens.
+-- Only when the profile has another screen variant: otherwise it would fall back to "default" everywhere.
+local function screenCount(set)
+  local n = 0
+  for k in pairs(set) do if type(k) == "number" then n = n + 1 end end
+  return n
+end
+
+local function removeVariant(name, key)
+  local set = layoutsRef[name]
+  key = tonumber(key)
+  if not (set and key and set[key]) or screenCount(set) < 2 then return false end
+  if custom[name] and custom[name][key] then
+    custom[name][key] = nil
+    if not next(custom[name]) then custom[name] = nil end
+    writeCustom()
+  end
+  if builtin[name] and config.layouts[name][key] then
+    local hidden = hs.settings.get("windr.hidden") or {}
+    local keys = hidden[name] or {}
+    keys[#keys + 1] = tostring(key)
+    hidden[name] = keys
+    hs.settings.set("windr.hidden", hidden)
+  end
+  return true
+end
+
+local function clearHidden(name)
+  local hidden = hs.settings.get("windr.hidden") or {}
+  if hidden[name] then
+    hidden[name] = nil
+    hs.settings.set("windr.hidden", hidden)
+  end
+end
+
+--- Windr:removeFromScreen(name, width)
+--- Method
+--- Removes the variant of profile `name` for the screen `width` (e.g. 3840), keeping its other screens.
+function M:removeFromScreen(name, width)
+  local ok = removeVariant(name, width)
+  if ok then
+    rebuild()
+    bindProfileHotkeys()
+  end
+  return ok
+end
+
 --- Windr:save(name)
 --- Method
 --- Saves the current layout under `name` (e.g. hs -c 'spoon.Windr:save("dev")').
@@ -390,7 +502,6 @@ local function toApps(layout, order)
     apps[#apps + 1] = {
       name = appName, x = r[1], y = r[2], w = r[3], h = r[4],
       running = hs.application.get(appName) ~= nil,
-      icon = iconFor(appName) or nil,
     }
   end
   if not order then
@@ -403,34 +514,60 @@ local function columns(cards) return cards <= 4 and 2 or 3 end
 
 local function buildData()
   local screen = hs.screen.mainScreen()
-  local full, sf = screen:fullFrame(), screen:frame()
-  local key = math.floor(full.w)
+  local sf, full = screen:frame(), screen:fullFrame()
+  local known, key = rememberScreen(screen)
+  local icons, keySet = {}, { [key] = true }
+  local function addIcons(layout)
+    for appName in pairs(layout) do
+      if icons[appName] == nil then icons[appName] = iconFor(appName) end
+    end
+  end
 
   local profiles = {}
   for _, name in ipairs(orderedNames()) do
     local set = layoutsRef[name]
+    local variants, keys = {}, {}
+    for k, layout in pairs(set) do
+      variants[tostring(k)] = toApps(layout)
+      addIcons(layout)
+    end
+    for _, k in ipairs(screenKeysOf(set)) do
+      keys[#keys + 1] = tostring(k)
+      keySet[tostring(k)] = true
+    end
     profiles[#profiles + 1] = {
-      name = name,
-      variant = set[key] and tostring(key) or "default",
-      apps = toApps(set[key] or set.default or {}),
+      name = name, keys = keys, variants = variants,
       custom = custom[name] ~= nil,
       builtin = builtin[name] == true,
     }
   end
 
+  local screens = {}
+  for k in pairs(keySet) do
+    local s = known[k] or {}
+    screens[#screens + 1] = { key = k, name = s.name, w = s.w, h = s.h, current = k == key,
+                              label = s.fh and (k .. " × " .. s.fh) or k }
+  end
+  table.sort(screens, function(a, b) return tonumber(a.key) > tonumber(b.key) end)
+  if M.filter ~= "all" and not keySet[M.filter or ""] then M.filter = nil end
+
   pending = captureCurrent()
+  addIcons(pending.rects)
   local backToFront = {}
   for i = #pending.order, 1, -1 do backToFront[#backToFront + 1] = pending.order[i] end
   local cols = columns(#profiles + 1)
 
   return {
     t = T,
-    screen = { name = screen:name(), w = sf.w, h = sf.h, key = tostring(key),
+    screen = { name = screen:name(), w = sf.w, h = sf.h, key = key,
                label = math.floor(full.w) .. " × " .. math.floor(full.h) },
+    screens = screens,
+    filter = M.filter or key,
     current = M.current,
     cols = cols, cardW = CARD_W, gap = GAP, shadow = SHADOW,
     contentW = cols * CARD_W + (cols - 1) * GAP,
     profiles = profiles,
+    icons = icons,
     -- back to front, so the frontmost window is painted last
     capture = toApps(pending.rects, backToFront),
   }
@@ -481,6 +618,14 @@ header p { font-size: 11px; color: var(--muted); margin-top: 1px; }
 .chip { font-size: 10.5px; font-weight: 500; color: var(--muted); background: var(--kbd);
         border-radius: 999px; padding: 3px 9px; }
 
+.tabs { display: flex; flex-wrap: wrap; gap: 2px; width: fit-content; max-width: 100%; margin: -4px 0 12px;
+        padding: 2px; border-radius: 9px; background: var(--kbd); box-shadow: inset 0 0 0 1px var(--line); }
+.tab { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 9px; border-radius: 7px;
+       font-size: 11.5px; font-weight: 550; color: var(--muted); white-space: nowrap; transition: background .12s, color .12s; }
+.tab:hover { color: var(--fg); }
+.tab.on { background: var(--bg); color: var(--fg); box-shadow: 0 0 0 .5px var(--line), 0 1px 3px rgba(0,0,0,.14); }
+.tab svg { width: 13px; height: 13px; }
+.tab em { font-style: normal; font-size: 10px; color: var(--faint); font-variant-numeric: tabular-nums; }
 .grid { display: grid; }
 .card { position: relative; padding: 6px; border-radius: 12px; background: var(--card);
         box-shadow: 0 0 0 1px var(--line); transition: background .15s, box-shadow .15s, transform .15s; }
@@ -577,18 +722,36 @@ const T = D.t;
 // Fills {name}, {key}, {apps} placeholders; values are inserted as given (escape them first)
 const fmt = (s, vars) => s.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '');
 const plural = n => `${n} ${n > 1 ? T.apps : T.app}`;
-const profiles = Object.values(D.profiles || {});
-const capture = Object.values(D.capture || {});
-const ratio = D.screen.h / D.screen.w;
+const list = v => Object.values(v || {});
+const allProfiles = list(D.profiles).map(p => ({ ...p, keys: list(p.keys) }));
+const screens = list(D.screens);
+const capture = list(D.capture);
+const iconOf = a => D.icons[a.name] || null;
+const ratioFor = k => { const s = screens.find(s => s.key === k); return s && s.w ? s.h / s.w : D.screen.h / D.screen.w; };
+let filter = D.filter;
+let ratio = ratioFor(D.screen.key);
+const gridRatio = () => ratioFor(filter === 'all' ? D.screen.key : filter);
 const innerW = D.cardW - 12;
+// Profiles shown for the selected screen, with the variant to preview
+let profiles = [];
+function computeVisible() {
+  const want = filter === 'all' ? D.screen.key : filter;
+  profiles = allProfiles.filter(p => filter === 'all' || !p.keys.length || p.keys.includes(filter)).map(p => {
+    const variant = p.variants[want] ? want : p.variants.default ? 'default' : p.keys[0];
+    return { ...p, variant, apps: list(p.variants[variant]) };
+  });
+}
+computeVisible();
 const ICON = {
   frame: '<svg viewBox="0 0 16 16"><path d="M2 5.5v-2A1.5 1.5 0 0 1 3.5 2h2M10.5 2h2A1.5 1.5 0 0 1 14 3.5v2M14 10.5v2a1.5 1.5 0 0 1-1.5 1.5h-2M5.5 14h-2A1.5 1.5 0 0 1 2 12.5v-2"/><rect x="5" y="5" width="6" height="6" rx="1"/></svg>',
   x: '<svg viewBox="0 0 16 16"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg>',
   plus: '<svg viewBox="0 0 16 16"><path d="M8 3.5v9M3.5 8h9"/></svg>',
   edit: '<svg viewBox="0 0 16 16"><path d="M10.5 2.5l3 3L6 13H3v-3z"/><path d="M9 4l3 3"/></svg>',
+  unscreen: '<svg viewBox="0 0 16 16"><rect x="2" y="2.75" width="12" height="8.5" rx="1.25"/><path d="M6 13.75h4M8 11.25v2.5M6 7h4"/></svg>',
+  screen: '<svg viewBox="0 0 16 16"><rect x="2" y="2.75" width="12" height="8.5" rx="1.25"/><path d="M6 13.75h4M8 11.25v2.5"/></svg>',
 };
 const app = document.getElementById('app');
-let view = 'grid', confirmDel = -1;
+let view = 'grid', askKey = '';  // '<card index>:<action>' waiting for a 2nd click
 const excluded = new Set();
 let sel = Math.max(0, profiles.findIndex(p => p.name === D.current));
 
@@ -618,7 +781,7 @@ function tiles(apps, width) {
     const covered = slots.slice(i + 1).some(o => covers(o, s));
     const pw = s.w * width, ph = s.h * height;
     const names = s.members.map(m => m.name);
-    const withIcon = s.members.filter(m => m.icon);
+    const withIcon = s.members.filter(iconOf);
     const maxIcons = Math.max(1, Math.floor((pw - 6) / 24));
     const icon = withIcon.length && pw >= 24 && ph >= 24;
     const label = !covered && (!icon || (pw >= 54 && ph >= 52));
@@ -627,31 +790,61 @@ function tiles(apps, width) {
     const title = s.members.map(m => m.name + (m.running ? '' : ' ' + T.closed)).join(' + ');
     return `<div class="win${cls}" data-app="${esc(s.name)}" title="${esc(title)}"
       style="left:${s.x * 100}%;top:${s.y * 100}%;width:${s.w * 100}%;height:${s.h * 100}%">
-      <div class="tile${covered ? ' covered' : ''}">${icon ? `<div class="icons">${withIcon.slice(0, maxIcons).map(m => `<img src="${m.icon}">`).join('')}</div>` : ''}
+      <div class="tile${covered ? ' covered' : ''}">${icon ? `<div class="icons">${withIcon.slice(0, maxIcons).map(m => `<img src="${iconOf(m)}">`).join('')}</div>` : ''}
       ${label ? `<span>${esc(names.join(' + '))}</span>` : ''}</div></div>`;
   }).join('');
 }
 
 function card(p, i) {
-  const apps = Object.values(p.apps || {});
+  const apps = p.apps;
   const current = p.name === D.current;
-  const del = p.custom ? `<button class="act danger${confirmDel === i ? ' confirm' : ''}" data-act="delete"
-      title="${p.builtin ? T.restoreTip : T.deleteTip}">${ICON.x}${confirmDel === i ? (p.builtin ? T.restoreConfirm : T.deleteConfirm) : ''}</button>` : '';
+  const where = filter !== 'all' ? p.variant : p.keys.length ? p.keys.join(', ') : T.everyScreen;
+  const asking = act => askKey === `${i}:${act}`;
+  // "Remove from this screen": only in a screen tab, when the profile also lives on another screen
+  const detach = filter !== 'all' && p.keys.includes(filter) && p.keys.length > 1
+    ? `<button class="act danger${asking('detach') ? ' confirm' : ''}" data-act="detach"
+      title="${T.detachTip}">${ICON.unscreen}${asking('detach') ? T.detachConfirm : ''}</button>` : '';
+  const del = p.custom ? `<button class="act danger${asking('delete') ? ' confirm' : ''}" data-act="delete"
+      title="${p.builtin ? T.restoreTip : T.deleteTip}">${ICON.x}${asking('delete') ? (p.builtin ? T.restoreConfirm : T.deleteConfirm) : ''}</button>` : '';
   return `<div class="card" data-i="${i}">
     <div class="screen" style="height:${Math.round(innerW * ratio)}px">${tiles(apps, innerW)}
-      <div class="actions"><button class="act" data-act="edit" title="${T.editTip}">${ICON.edit}</button><button class="act" data-act="update" title="${T.replaceTip}">${ICON.frame}</button>${del}</div>
+      <div class="actions"><button class="act" data-act="edit" title="${T.editTip}">${ICON.edit}</button><button class="act" data-act="update" title="${T.replaceTip}">${ICON.frame}</button>${detach}${del}</div>
     </div>
     <div class="meta"><div class="txt">
       <div class="name">${esc(p.name)}${current ? `<i class="dot" title="${T.active}"></i>` : ''}</div>
-      <div class="sub">${plural(apps.length)} · ${p.variant}</div>
+      <div class="sub">${plural(apps.length)} · ${where}</div>
     </div><kbd class="num">${i < 9 ? i + 1 : ''}</kbd></div>
   </div>`;
 }
 
+function tabs() {
+  if (screens.length < 2) return '';
+  const count = k => allProfiles.filter(p => !p.keys.length || p.keys.includes(k)).length;
+  const items = [...screens.map(s => ({ key: s.key, label: s.label, title: s.name, current: s.current, n: count(s.key) })),
+                 { key: 'all', label: T.allScreens, n: allProfiles.length }];
+  return `<div class="tabs">${items.map(it => `<button class="tab${it.key === filter ? ' on' : ''}" data-filter="${it.key}"
+    title="${esc(it.title ? it.title + (it.current ? ' · ' + T.thisScreen : '') : '')}">${it.current ? ICON.screen : ''}<span>${esc(it.label)}</span><em>${it.n}</em></button>`).join('')}</div>`;
+}
+
+function setFilter(k) {
+  if (k === filter) return;
+  filter = k;
+  askKey = '';
+  computeVisible();
+  sel = Math.max(0, profiles.findIndex(p => p.name === D.current));
+  post({ type: 'filter', key: k });
+  renderGrid();
+}
+
 function renderGrid() {
   view = 'grid';
+  ratio = gridRatio();
+  const shown = screens.find(s => s.key === filter);
+  const subtitle = filter === 'all' ? T.allScreens : shown && shown.name ? shown.name : D.screen.name;
+  const t = tabs();
   app.innerHTML = `
-    <header><div><h1>${T.title}</h1><p>${esc(D.screen.name)}</p></div><span class="chip">${D.screen.label}</span></header>
+    <header><div><h1>${T.title}</h1><p>${esc(subtitle)}</p></div>${t ? '' : `<span class="chip">${D.screen.label}</span>`}</header>
+    ${t}
     <div class="grid" style="grid-template-columns:repeat(${D.cols}, ${D.cardW}px);gap:${D.gap}px">
       ${profiles.map(card).join('')}
       <div class="card new" data-i="${profiles.length}">
@@ -660,7 +853,7 @@ function renderGrid() {
           <div class="sub">${T.currentLayout}</div></div><kbd>N</kbd></div>
       </div>
     </div>
-    <footer><span><kbd>1</kbd>–<kbd>9</kbd> ${T.apply}</span><span><kbd>N</kbd> ${T.captureKey}</span><span>${T.dragHint}</span><span><kbd>esc</kbd> ${T.close}</span></footer>`;
+    <footer><span><kbd>1</kbd>–<kbd>9</kbd> ${T.apply}</span><span><kbd>N</kbd> ${T.captureKey}</span>${t ? `<span><kbd>tab</kbd> ${T.switchScreen}</span>` : ''}<span>${T.dragHint}</span><span><kbd>esc</kbd> ${T.close}</span></footer>`;
   select(sel);
   fit();
 }
@@ -674,7 +867,8 @@ function renderEditor(mode, name) {
   editFrom = name;
   excluded.clear();
   const p = profiles.find(q => q.name === name);
-  editApps = mode === 'edit' ? Object.values(p.apps || {}) : capture;
+  editApps = mode === 'edit' ? p.apps : capture;
+  ratio = mode === 'edit' && p.variant !== 'default' ? ratioFor(p.variant) : mode === 'edit' ? gridRatio() : ratioFor(D.screen.key);
   const W = D.contentW;
   const title = mode === 'edit' ? fmt(T.editTitle, { name: esc(name) })
     : name ? fmt(T.replaceTitle, { name: esc(name) }) : T.newProfile;
@@ -702,7 +896,7 @@ function refreshEditor() {
     : `<div class="none">${editApps.length ? T.noneKept : T.noWindows}</div>`;
   document.getElementById('apps').innerHTML = editApps.map(a => `
     <button class="app${excluded.has(a.name) ? ' excluded' : ''}" data-app="${esc(a.name)}">
-      ${a.icon ? `<img src="${a.icon}">` : ''}<span>${esc(a.name)}</span>${excluded.has(a.name) ? ICON.plus : ICON.x}</button>`).join('');
+      ${iconOf(a) ? `<img src="${iconOf(a)}">` : ''}<span>${esc(a.name)}</span>${excluded.has(a.name) ? ICON.plus : ICON.x}</button>`).join('');
   updateHint();
   fit();
 }
@@ -740,7 +934,7 @@ function select(i) {
 
 function activate(i) {
   if (i === profiles.length) renderEditor('capture', null);
-  else post({ type: 'apply', name: profiles[i].name });
+  else post({ type: 'apply', name: profiles[i].name, variant: profiles[i].variant });
 }
 
 document.addEventListener('mouseover', e => {
@@ -764,17 +958,23 @@ document.addEventListener('click', e => {
     if (e.target.closest('[data-save]')) save();
     return;
   }
+  const tab = e.target.closest('[data-filter]');
+  if (tab) return setFilter(tab.dataset.filter);
   const act = e.target.closest('[data-act]');
   const c = e.target.closest('.card');
   if (act) {
     const i = +c.dataset.i;
     if (act.dataset.act === 'edit') return renderEditor('edit', profiles[i].name);
     if (act.dataset.act === 'update') return renderEditor('capture', profiles[i].name);
-    if (confirmDel === i) return post({ type: 'delete', name: profiles[i].name });
-    confirmDel = i;
+    const key = `${i}:${act.dataset.act}`;
+    if (askKey === key) {
+      return post(act.dataset.act === 'detach' ? { type: 'delete', name: profiles[i].name, variant: filter }
+                                               : { type: 'delete', name: profiles[i].name });
+    }
+    askKey = key;
     return renderGrid();
   }
-  if (confirmDel >= 0) { confirmDel = -1; renderGrid(); }
+  if (askKey) { askKey = ''; renderGrid(); }
   if (c) activate(+c.dataset.i);
 });
 
@@ -785,8 +985,14 @@ document.addEventListener('keydown', e => {
     return;
   }
   const n = profiles.length + 1;
-  if (e.key === 'Escape') return confirmDel >= 0 ? (confirmDel = -1, renderGrid()) : post({ type: 'close' });
+  if (e.key === 'Escape') return askKey ? (askKey = '', renderGrid()) : post({ type: 'close' });
   if (e.key === 'Enter') return activate(sel);
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const keys = screens.length > 1 ? [...screens.map(s => s.key), 'all'] : [];
+    if (keys.length) setFilter(keys[(keys.indexOf(filter) + (e.shiftKey ? -1 : 1) + keys.length) % keys.length]);
+    return;
+  }
   if (e.key === 'n' || e.key === 'N') { e.preventDefault(); return renderEditor('capture', null); }
   if (/^[1-9]$/.test(e.key) && +e.key <= profiles.length) return activate(+e.key - 1);
   const moves = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: D.cols, ArrowUp: -D.cols };
@@ -843,12 +1049,17 @@ document.addEventListener('mouseup', () => {
   if (!drag) return;
   if (drag.active) {
     const moved = profiles[+drag.el.dataset.i];
-    const reordered = profileCards().map(c => profiles[+c.dataset.i]);
-    profiles.splice(0, profiles.length, ...reordered);
-    post({ type: 'order', names: profiles.map(p => p.name) });
+    const reordered = profileCards().map(c => profiles[+c.dataset.i].name);
+    // Only the visible profiles moved: they take each other's places in the full order
+    const visible = new Set(reordered);
+    let j = 0;
+    const names = allProfiles.map(p => visible.has(p.name) ? reordered[j++] : p.name);
+    allProfiles.sort((a, b) => names.indexOf(a.name) - names.indexOf(b.name));
+    computeVisible();
+    post({ type: 'order', names });
     document.body.classList.remove('is-dragging');
     sel = profiles.indexOf(moved);
-    confirmDel = -1;
+    askKey = '';
     justDragged = true;
     setTimeout(() => { justDragged = false; }, 0);
     renderGrid();
@@ -887,7 +1098,7 @@ local function onMessage(msg)
     hideAndRefocus()
   elseif body.type == "apply" then
     hideAndRefocus()
-    M:apply(body.name)
+    M:apply(body.name, body.variant)
   elseif body.type == "save" and pending then
     local saved
     if type(body.from) == "string" then
@@ -895,12 +1106,20 @@ local function onMessage(msg)
     else
       for _, appName in ipairs(body.excluded or {}) do pending.rects[appName] = nil end
       saved = saveProfile(body.name, pending)
+      -- show the new profile: it belongs to the current screen
+      if saved and M.filter ~= "all" then M.filter = nil end
     end
     if saved then refresh(tr("saved", saved)) end
+  elseif body.type == "delete" and body.variant then
+    if removeVariant(body.name, body.variant) then refresh() end
   elseif body.type == "delete" and custom[body.name] then
     custom[body.name] = nil
     writeCustom()
+    -- restoring a starter profile also brings back the variants removed from a screen
+    clearHidden(body.name)
     refresh()
+  elseif body.type == "filter" and type(body.key) == "string" then
+    M.filter = body.key
   elseif body.type == "order" and type(body.names) == "table" then
     hs.settings.set("windr.order", body.names)
     bindProfileHotkeys()
@@ -967,6 +1186,7 @@ function M:toggle()
     hideAndRefocus()
   elseif hs.timer.secondsSinceEpoch() - lastHide > 0.3 then
     -- don't reopen when the click on the icon has just closed the panel
+    M.filter = nil
     M:show()
   end
 end

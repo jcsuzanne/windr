@@ -9,6 +9,7 @@ Windr adds an icon to the macOS menu bar. It opens a panel listing your **layout
 - **Edit** a profile: remove an app, rename it
 - **Reorder** profiles with drag and drop
 - **Per-screen variants**: one profile can hold one arrangement for your external display and another for your MacBook
+- **Grouped by screen**: one tab per screen, so each display gets its own list of profiles
 
 Windr is a plugin ("Spoon") for [Hammerspoon](https://www.hammerspoon.org), a free and open-source macOS automation tool.
 
@@ -115,12 +116,14 @@ That's it. Next time, open the panel and click `dev`: everything goes back into 
 | Apply a profile | Click its card, press `1`–`9`, or use arrow keys + `Enter` |
 | New profile | **Capture** card, or `N` |
 | Reorder | Drag and drop a card (the numbers follow) |
+| Switch screen | Click a tab above the cards, or `Tab` / `⇧Tab` |
 | Close | `Esc`, or click anywhere else |
 
-Hover over a card and three buttons appear in its top-right corner:
+Hover over a card and its buttons appear in its top-right corner:
 
 - ✏️ **Edit**: remove or restore apps, rename the profile
 - ⧉ **Replace**: overwrite the profile with your current window arrangement
+- 🖥 **Remove from this screen** (in a screen tab, when the profile also exists on another screen): removes only this screen's variant
 - ✕ **Delete**: click a second time to confirm
 
 The green dot marks the last profile you applied. A closed app is greyed out in the preview and is skipped until you open it.
@@ -128,6 +131,14 @@ The green dot marks the last profile you applied. A closed app is greyed out in 
 ### Per-screen variants
 
 A profile is saved for the width of the screen you capture it on (for example `3840` for a wide 4K display). It is also used as the **default** arrangement on other screens. Capturing the same profile on your MacBook adds a variant for that screen. Each card shows which variant is in use under its name.
+
+### Profiles grouped by screen
+
+When you have profiles for more than one screen, tabs appear above the cards: one per screen resolution (the current screen has a 🖥 icon), plus **All screens**. The panel always opens on the current screen's tab, so your ultra-wide profiles don't clutter the list on your laptop.
+
+A profile shows up on every screen it has a variant for. Profiles with only a `default` arrangement (like code profiles without a screen width) show up everywhere. Applying a profile from another screen's tab still works: it uses the variant for the current screen if there is one, otherwise the default.
+
+To take a profile off one screen without losing it elsewhere, open that screen's tab and use the 🖥 **Remove from this screen** button on its card. It only appears when the profile has another screen to fall back on; for a profile tied to a single screen, use ✕ **Delete**.
 
 ---
 

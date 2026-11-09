@@ -9,6 +9,7 @@ Windr ajoute une icône dans la barre de menus macOS. Elle ouvre un panneau avec
 - **Modifier** un profil : retirer une app, le renommer
 - **Réordonner** les profils par glisser-déposer
 - **Variantes par écran** : un même profil peut avoir une disposition pour ton écran externe et une autre pour le MacBook
+- **Rangés par écran** : un onglet par écran, chaque moniteur a sa propre liste de profils
 
 Windr est un plugin (« Spoon ») pour [Hammerspoon](https://www.hammerspoon.org), un outil d'automatisation macOS gratuit et open source.
 
@@ -115,12 +116,14 @@ C'est tout. La prochaine fois, ouvre le panneau et clique sur `dev` : tout se re
 | Appliquer un profil | Clic sur la carte, `1`–`9`, ou flèches + `Entrée` |
 | Nouveau profil | Carte **Capturer** ou `N` |
 | Réordonner | Glisser-déposer une carte (les numéros suivent) |
+| Changer d'écran | Clic sur un onglet au-dessus des cartes, ou `Tab` / `⇧Tab` |
 | Fermer | `Échap` ou clic ailleurs |
 
-En survolant une carte, trois boutons apparaissent en haut à droite :
+En survolant une carte, ses boutons apparaissent en haut à droite :
 
 - ✏️ **Modifier** : retirer ou remettre des apps, renommer le profil
 - ⧉ **Remplacer** : remplace le profil par la disposition actuelle des fenêtres
+- 🖥 **Retirer de cet écran** (dans l'onglet d'un écran, si le profil existe aussi sur un autre écran) : retire seulement la variante de cet écran
 - ✕ **Supprimer** : demande un second clic pour confirmer
 
 Le point vert indique le dernier profil appliqué. Une app fermée apparaît grisée dans l'aperçu : elle sera ignorée tant qu'elle n'est pas ouverte.
@@ -128,6 +131,14 @@ Le point vert indique le dernier profil appliqué. Une app fermée apparaît gri
 ### Variantes par écran
 
 Un profil est enregistré pour la largeur de l'écran sur lequel tu le captures (par exemple `3840` pour un écran 4K large), et sert aussi de disposition **par défaut** sur les autres écrans. Si tu captures le même profil sur ton MacBook, cela ajoute une variante pour cet écran. La variante utilisée est indiquée sous le nom de chaque carte.
+
+### Profils rangés par écran
+
+Dès que tu as des profils pour plusieurs écrans, des onglets apparaissent au-dessus des cartes : un par résolution d'écran (l'écran actuel a une icône 🖥), plus **Tous les écrans**. Le panneau s'ouvre toujours sur l'onglet de l'écran actuel : tes profils ultra-wide n'encombrent plus la liste sur ton portable.
+
+Un profil apparaît sur chaque écran pour lequel il a une variante. Les profils qui n'ont qu'une disposition `default` (comme les profils définis dans le code sans largeur d'écran) apparaissent partout. Appliquer un profil depuis l'onglet d'un autre écran fonctionne quand même : il utilise la variante de l'écran actuel s'il y en a une, sinon celle par défaut.
+
+Pour enlever un profil d'un écran sans le perdre ailleurs, ouvre l'onglet de cet écran et utilise le bouton 🖥 **Retirer de cet écran** sur sa carte. Il n'apparaît que si le profil a un autre écran sur lequel se replier ; pour un profil lié à un seul écran, utilise ✕ **Supprimer**.
 
 ---
 

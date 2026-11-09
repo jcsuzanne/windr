@@ -11,6 +11,13 @@ Your version: hammer icon → `Console` → `spoon.Windr.version`, or hover the 
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-09
+
+### Added
+- Profiles are grouped by screen: the panel shows one tab per screen resolution, plus **All screens**. It opens on the current screen's tab; `Tab` / `⇧Tab` switches tabs. A profile appears on the screens it has a variant for; a profile with only a `default` variant appears on every screen.
+- **Remove from this screen** button on a card (in a screen tab): drops only that screen's variant and keeps the profile on its other screens. Also available as `spoon.Windr:removeFromScreen(name, width)`.
+- Profile shortcuts (`profileHotkeys`) and the `1`–`9` keys follow the order of the current screen's profiles.
+
 ### Changed
 - Downloads now come from [GitHub Releases](https://github.com/jcsuzanne/windr/releases); the zip is no longer stored in the repo.
 
@@ -47,7 +54,8 @@ Your version: hammer icon → `Console` → `spoon.Windr.version`, or hover the 
 - `profileHotkeys` option to apply profiles 1–9 with a global shortcut.
 - Finder and System Settings are never captured. Apps placed in the same spot share one tile in previews.
 
-[Unreleased]: https://github.com/jcsuzanne/windr/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/jcsuzanne/windr/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/jcsuzanne/windr/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/jcsuzanne/windr/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/jcsuzanne/windr/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/jcsuzanne/windr/releases/tag/v1.0.0
