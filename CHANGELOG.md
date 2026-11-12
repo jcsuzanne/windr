@@ -11,6 +11,12 @@ Your version: hammer icon → `Console` → `spoon.Windr.version`, or hover the 
 
 ## [Unreleased]
 
+### Added
+- **Auto** switch in the panel header: re-applies a profile when screens change (display plugged or unplugged). New `autoApply` option: a profile name, `true` (the active profile, default) or `false` (off, no switch). Also `spoon.Windr:setAutoApply(on)`.
+
+### Fixed
+- Windows were resized with a seemingly random layout after waking from sleep, when a screen watcher applied a profile on every screen event. Windr's watcher ignores events while asleep, waits for displays to settle and only applies a profile when the set of screens actually changed.
+
 ## [1.2.0] - 2026-11-09
 
 ### Added

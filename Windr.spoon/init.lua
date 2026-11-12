@@ -7,6 +7,7 @@
 --- * "Capture" (N) saves the current window arrangement as a new profile
 --- * Edit, replace, delete and reorder (drag and drop) profiles
 --- * Profiles are grouped by screen (one tab per screen resolution)
+--- * Optional auto-apply when screens change (plug/unplug), with an on/off switch in the panel
 ---
 --- Captured profiles are stored in ~/.hammerspoon/windr_layouts.json.
 --- The interface follows the macOS language (English or French).
@@ -43,6 +44,9 @@ local config = {
   ignore = {},
   -- "auto" (follows macOS), "en" or "fr"
   language = "auto",
+  -- When screens change (plug/unplug): a profile name, true = the active profile, false = never.
+  -- Turned on/off with the switch in the panel (off by default unless this option is given).
+  autoApply = true,
 }
 
 -- Apps never captured (utility windows that are often open by accident), by bundle ID
@@ -99,6 +103,11 @@ local STRINGS = {
     switchScreen = "screen",
     detachTip = "Remove from this screen (keeps the other screens)",
     detachConfirm = "Remove?",
+    auto = "Auto",
+    autoTip = "Re-apply “{name}” when screens change (not on wake)",
+    autoActive = "the active profile",
+    autoOn = "Auto-apply on",
+    autoOff = "Auto-apply off",
   },
   fr = {
     title = "Layouts",
@@ -144,6 +153,11 @@ local STRINGS = {
     switchScreen = "écran",
     detachTip = "Retirer de cet écran (garde les autres écrans)",
     detachConfirm = "Retirer ?",
+    auto = "Auto",
+    autoTip = "Réappliquer « {name} » quand les écrans changent (pas au réveil)",
+    autoActive = "le profil actif",
+    autoOn = "Application auto activée",
+    autoOff = "Application auto désactivée",
   },
 }
 
@@ -168,6 +182,8 @@ local lastHide = 0
 local iconCache = {}
 local custom, builtin = {}, {}
 local timers = {}
+local screenWatcher, sleepWatcher
+local autoDefault = false
 
 M.current = hs.settings.get("windr.current")
 
@@ -328,6 +344,81 @@ function M:apply(name, variant)
   end
   setCurrent(name)
   hs.alert.show(T.applied .. name)
+end
+
+-- ---------- Auto-apply when screens change ----------
+-- Waking from sleep fires several screen events while displays reconnect (the external one often
+-- comes back last), so a naive watcher applies a profile several times, on a transient screen.
+-- Here: events are ignored while asleep, debounced, and a profile is applied only when the set
+-- of screens really differs from the last settled one.
+local asleep, wokeAt, lastScreens = false, 0, nil
+
+local function screensSignature()
+  local parts = {}
+  for _, s in ipairs(hs.screen.allScreens()) do
+    local f = s:fullFrame()
+    parts[#parts + 1] = string.format("%s:%dx%d", s:name() or "?", math.floor(f.w), math.floor(f.h))
+  end
+  table.sort(parts)
+  return table.concat(parts, "|")
+end
+
+local function autoEnabled()
+  if config.autoApply == false then return false end
+  local on = hs.settings.get("windr.auto")
+  if on == nil then return autoDefault end
+  return on
+end
+
+local function autoTarget()
+  if type(config.autoApply) == "string" then return config.autoApply end
+  return M.current
+end
+
+local function onScreensChanged()
+  if timers.screens then timers.screens:stop() end
+  if asleep then return end
+  -- displays take longer to settle right after waking up
+  local delay = hs.timer.secondsSinceEpoch() - wokeAt < 30 and 6 or 2
+  timers.screens = hs.timer.doAfter(delay, function()
+    timers.screens = nil
+    if asleep then return end
+    local sig = screensSignature()
+    if sig == lastScreens then return end
+    lastScreens = sig
+    local name = autoTarget()
+    if autoEnabled() and name and layoutsRef[name] then M:apply(name) end
+  end)
+end
+
+local SLEEP = {
+  [hs.caffeinate.watcher.systemWillSleep] = true,
+  [hs.caffeinate.watcher.screensDidSleep] = true,
+}
+local WAKE = {
+  [hs.caffeinate.watcher.systemDidWake] = true,
+  [hs.caffeinate.watcher.screensDidWake] = true,
+}
+
+local function onPower(event)
+  if SLEEP[event] then
+    asleep = true
+    if timers.screens then timers.screens:stop(); timers.screens = nil end
+  elseif WAKE[event] then
+    asleep = false
+    wokeAt = hs.timer.secondsSinceEpoch()
+    -- screens unplugged during sleep are still handled, once everything has settled
+    onScreensChanged()
+  end
+end
+
+--- Windr:setAutoApply(on)
+--- Method
+--- Turns auto-apply on screen change on (true) or off (false). Same as the switch in the panel.
+function M:setAutoApply(on)
+  hs.settings.set("windr.auto", on == true)
+  hs.alert.show(on and T.autoOn or T.autoOff)
+  return self
 end
 
 -- ---------- App icons (data URLs, cached) ----------
@@ -570,6 +661,7 @@ local function buildData()
     icons = icons,
     -- back to front, so the frontmost window is painted last
     capture = toApps(pending.rects, backToFront),
+    auto = config.autoApply ~= false and { on = autoEnabled(), target = autoTarget() } or nil,
   }
 end
 
@@ -615,6 +707,16 @@ svg { display: block; fill: none; stroke: currentColor; stroke-width: 1.6; strok
 header { display: flex; align-items: center; justify-content: space-between; margin: 0 2px 14px; }
 h1 { font-size: 14px; font-weight: 650; letter-spacing: -.01em; }
 header p { font-size: 11px; color: var(--muted); margin-top: 1px; }
+.hright { display: flex; align-items: center; gap: 10px; }
+.toggle { display: inline-flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 550; color: var(--muted); }
+.toggle:hover { color: var(--fg); }
+.toggle i { position: relative; width: 26px; height: 15px; border-radius: 999px; background: var(--kbd);
+            box-shadow: inset 0 0 0 1px var(--line); transition: background .15s; }
+.toggle i::after { content: ''; position: absolute; top: 2px; left: 2px; width: 11px; height: 11px; border-radius: 50%;
+                   background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.3); transition: transform .15s; }
+.toggle.on { color: var(--fg); }
+.toggle.on i { background: var(--accent); box-shadow: none; }
+.toggle.on i::after { transform: translateX(11px); }
 .chip { font-size: 10.5px; font-weight: 500; color: var(--muted); background: var(--kbd);
         border-radius: 999px; padding: 3px 9px; }
 
@@ -826,6 +928,13 @@ function tabs() {
     title="${esc(it.title ? it.title + (it.current ? ' · ' + T.thisScreen : '') : '')}">${it.current ? ICON.screen : ''}<span>${esc(it.label)}</span><em>${it.n}</em></button>`).join('')}</div>`;
 }
 
+// On/off switch: auto-apply a profile when screens change
+function autoToggle() {
+  if (!D.auto) return '';
+  const tip = fmt(T.autoTip, { name: esc(D.auto.target || T.autoActive) });
+  return `<button class="toggle${D.auto.on ? ' on' : ''}" data-auto title="${tip}"><i></i>${T.auto}</button>`;
+}
+
 function setFilter(k) {
   if (k === filter) return;
   filter = k;
@@ -843,7 +952,8 @@ function renderGrid() {
   const subtitle = filter === 'all' ? T.allScreens : shown && shown.name ? shown.name : D.screen.name;
   const t = tabs();
   app.innerHTML = `
-    <header><div><h1>${T.title}</h1><p>${esc(subtitle)}</p></div>${t ? '' : `<span class="chip">${D.screen.label}</span>`}</header>
+    <header><div><h1>${T.title}</h1><p>${esc(subtitle)}</p></div>
+      <div class="hright">${autoToggle()}${t ? '' : `<span class="chip">${D.screen.label}</span>`}</div></header>
     ${t}
     <div class="grid" style="grid-template-columns:repeat(${D.cols}, ${D.cardW}px);gap:${D.gap}px">
       ${profiles.map(card).join('')}
@@ -957,6 +1067,11 @@ document.addEventListener('click', e => {
     if (e.target.closest('[data-cancel]')) renderGrid();
     if (e.target.closest('[data-save]')) save();
     return;
+  }
+  if (e.target.closest('[data-auto]')) {
+    D.auto.on = !D.auto.on;
+    post({ type: 'auto', on: D.auto.on });
+    return renderGrid();
   }
   const tab = e.target.closest('[data-filter]');
   if (tab) return setFilter(tab.dataset.filter);
@@ -1120,6 +1235,8 @@ local function onMessage(msg)
     refresh()
   elseif body.type == "filter" and type(body.key) == "string" then
     M.filter = body.key
+  elseif body.type == "auto" then
+    M:setAutoApply(body.on == true)
   elseif body.type == "order" and type(body.names) == "table" then
     hs.settings.set("windr.order", body.names)
     bindProfileHotkeys()
@@ -1216,7 +1333,10 @@ end
 ---  * profilesFile: path of the captured profiles file
 ---  * ignore: list of bundle IDs that are never captured
 ---  * language: "auto" (follows macOS), "en" or "fr"
+---  * autoApply: profile applied when screens change (name), true = the active profile, false = never
 function M:start(options)
+  -- the panel switch starts on only when autoApply is given explicitly
+  autoDefault = options ~= nil and options.autoApply ~= nil and options.autoApply ~= false
   for k, v in pairs(options or {}) do config[k] = v end
   pickLanguage()
   for _, id in ipairs(config.ignore or {}) do IGNORED[id] = true end
@@ -1233,6 +1353,12 @@ function M:start(options)
     toggleHotkey = hs.hotkey.bind(config.hotkey[1], config.hotkey[2], function() M:toggle() end)
   end
   bindProfileHotkeys()
+
+  if config.autoApply ~= false then
+    lastScreens = screensSignature()
+    screenWatcher = hs.screen.watcher.new(onScreensChanged):start()
+    sleepWatcher = hs.caffeinate.watcher.new(onPower):start()
+  end
   return self
 end
 
@@ -1245,6 +1371,9 @@ function M:stop()
   if toggleHotkey then toggleHotkey:delete(); toggleHotkey = nil end
   for _, hk in ipairs(profileHotkeys) do hk:delete() end
   profileHotkeys = {}
+  if screenWatcher then screenWatcher:stop(); screenWatcher = nil end
+  if sleepWatcher then sleepWatcher:stop(); sleepWatcher = nil end
+  if timers.screens then timers.screens:stop(); timers.screens = nil end
   return self
 end
 

@@ -140,6 +140,12 @@ A profile shows up on every screen it has a variant for. Profiles with only a `d
 
 To take a profile off one screen without losing it elsewhere, open that screen's tab and use the 🖥 **Remove from this screen** button on its card. It only appears when the profile has another screen to fall back on; for a profile tied to a single screen, use ✕ **Delete**.
 
+### Auto-apply when screens change
+
+Windr can re-apply a profile when you plug or unplug a display. Turn it on or off with the **Auto** switch at the top of the panel (hover it to see which profile it applies). By default it re-applies the active profile; the `autoApply` option picks a fixed one.
+
+Waking from sleep doesn't trigger it: Windr waits for the displays to settle and only acts if the set of screens really changed (for example a display unplugged while the Mac was asleep).
+
 ---
 
 ## Options
@@ -160,6 +166,10 @@ spoon.Windr:start({
 
   -- Interface language: "auto" (follows macOS), "en" or "fr"
   language = "auto",
+
+  -- Profile re-applied when screens change: a name, true (the active profile) or false (never,
+  -- and no switch in the panel). Giving it turns the Auto switch on the first time.
+  autoApply = "dev",
 })
 ```
 
@@ -204,6 +214,7 @@ Then `layout dev` applies the `dev` profile, and `hs -c 'spoon.Windr:save("dev")
 - **Windows don't move**: check Hammerspoon's Accessibility permission. If it's already on, turn it off and on again, then restart Hammerspoon.
 - **The icon doesn't appear**: hammer icon → `Console` to see the error. Make sure `Windr.spoon` is in `~/.hammerspoon/Spoons/`.
 - **An app isn't moved**: it has to be open. App names are the ones macOS displays (for example `Google Chrome`, not `chrome`).
+- **Windows move on their own after sleep**: remove any `hs.screen.watcher` from your `init.lua` that applies a layout (an old setup may have one) and use `autoApply` instead, which ignores wake-ups.
 - **Uninstall**: remove the two lines from `init.lua`, then delete `~/.hammerspoon/Spoons/Windr.spoon` and `~/.hammerspoon/windr_layouts.json`.
 
 ---

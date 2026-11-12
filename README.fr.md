@@ -140,6 +140,12 @@ Un profil apparaît sur chaque écran pour lequel il a une variante. Les profils
 
 Pour enlever un profil d'un écran sans le perdre ailleurs, ouvre l'onglet de cet écran et utilise le bouton 🖥 **Retirer de cet écran** sur sa carte. Il n'apparaît que si le profil a un autre écran sur lequel se replier ; pour un profil lié à un seul écran, utilise ✕ **Supprimer**.
 
+### Application auto quand les écrans changent
+
+Windr peut réappliquer un profil quand tu branches ou débranches un écran. Active-le ou coupe-le avec l'interrupteur **Auto** en haut du panneau (survole-le pour voir quel profil il applique). Par défaut il réapplique le profil actif ; l'option `autoApply` en fixe un.
+
+La sortie de veille ne le déclenche pas : Windr attend que les écrans soient stabilisés et n'agit que si l'ensemble des écrans a vraiment changé (par exemple un écran débranché pendant que le Mac dormait).
+
 ---
 
 ## Options
@@ -160,6 +166,10 @@ spoon.Windr:start({
 
   -- Langue de l'interface : "auto" (suit macOS), "en" ou "fr"
   language = "auto",
+
+  -- Profil réappliqué quand les écrans changent : un nom, true (le profil actif) ou false (jamais,
+  -- et pas d'interrupteur dans le panneau). Le donner active l'interrupteur Auto la première fois.
+  autoApply = "dev",
 })
 ```
 
@@ -204,6 +214,7 @@ Ensuite `layout dev` applique le profil `dev`, et `hs -c 'spoon.Windr:save("dev"
 - **Les fenêtres ne bougent pas** : vérifie l'autorisation Accessibilité de Hammerspoon. Si elle est déjà cochée, décoche-la puis recoche-la, et relance Hammerspoon.
 - **L'icône n'apparaît pas** : icône marteau → `Console` pour voir l'erreur. Vérifie que `Windr.spoon` est bien dans `~/.hammerspoon/Spoons/`.
 - **Une app n'est pas déplacée** : elle doit être ouverte. Les noms d'apps sont ceux affichés par macOS (par exemple `Google Chrome`, pas `chrome`).
+- **Les fenêtres bougent toutes seules après la veille** : retire de ton `init.lua` tout `hs.screen.watcher` qui applique un layout (une ancienne config peut en avoir un) et utilise `autoApply` à la place, qui ignore les réveils.
 - **Désinstaller** : retire les deux lignes de `init.lua`, puis supprime `~/.hammerspoon/Spoons/Windr.spoon` et `~/.hammerspoon/windr_layouts.json`.
 
 ---
