@@ -20,7 +20,7 @@ local obj = {}
 obj.__index = obj
 
 obj.name = "Windr"
-obj.version = "1.2.0"
+obj.version = "1.3.0"
 obj.author = "jc.suzanne"
 obj.license = "MIT - https://opensource.org/licenses/MIT"
 

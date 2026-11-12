@@ -11,6 +11,8 @@ Your version: hammer icon → `Console` → `spoon.Windr.version`, or hover the 
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-11-12
+
 ### Added
 - **Help** screen in the panel (**?** button or `?` key): what each button and icon does, drawn as in the panel.
 - **Auto** switch in the panel header: re-applies a profile when screens change (display plugged or unplugged). New `autoApply` option: a profile name, `true` (the active profile, default) or `false` (off, no switch). Also `spoon.Windr:setAutoApply(on)`.
@@ -61,7 +63,8 @@ Your version: hammer icon → `Console` → `spoon.Windr.version`, or hover the 
 - `profileHotkeys` option to apply profiles 1–9 with a global shortcut.
 - Finder and System Settings are never captured. Apps placed in the same spot share one tile in previews.
 
-[Unreleased]: https://github.com/jcsuzanne/windr/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/jcsuzanne/windr/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/jcsuzanne/windr/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/jcsuzanne/windr/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/jcsuzanne/windr/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/jcsuzanne/windr/compare/v1.0.0...v1.1.0
