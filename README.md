@@ -117,6 +117,7 @@ That's it. Next time, open the panel and click `dev`: everything goes back into 
 | New profile | **Capture** card, or `N` |
 | Reorder | Drag and drop a card (the numbers follow) |
 | Switch screen | Click a tab above the cards, or `Tab` / `⇧Tab` |
+| Help: what each button does | **?** button at the top right, or `?` |
 | Close | `Esc`, or click anywhere else |
 
 Hover over a card and its buttons appear in its top-right corner:

@@ -117,6 +117,7 @@ C'est tout. La prochaine fois, ouvre le panneau et clique sur `dev` : tout se re
 | Nouveau profil | Carte **Capturer** ou `N` |
 | Réordonner | Glisser-déposer une carte (les numéros suivent) |
 | Changer d'écran | Clic sur un onglet au-dessus des cartes, ou `Tab` / `⇧Tab` |
+| Aide : ce que fait chaque bouton | Bouton **?** en haut à droite, ou `?` |
 | Fermer | `Échap` ou clic ailleurs |
 
 En survolant une carte, ses boutons apparaissent en haut à droite :

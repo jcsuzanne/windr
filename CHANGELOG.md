@@ -12,6 +12,7 @@ Your version: hammer icon → `Console` → `spoon.Windr.version`, or hover the 
 ## [Unreleased]
 
 ### Added
+- **Help** screen in the panel (**?** button or `?` key): what each button and icon does, drawn as in the panel.
 - **Auto** switch in the panel header: re-applies a profile when screens change (display plugged or unplugged). New `autoApply` option: a profile name, `true` (the active profile, default) or `false` (off, no switch). Also `spoon.Windr:setAutoApply(on)`.
 
 ### Fixed

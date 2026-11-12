@@ -108,6 +108,23 @@ local STRINGS = {
     autoActive = "the active profile",
     autoOn = "Auto-apply on",
     autoOff = "Auto-apply off",
+    help = "help",
+    helpTip = "Help: what each button does",
+    helpTitle = "Help",
+    helpSub = "What each button and icon does",
+    back = "Back",
+    hOpen = "Open the panel", hOpenDesc = "Menu bar icon, or the shortcut (⌘⌥⌃Space by default)",
+    hApply = "Apply a profile", hApplyDesc = "Click its card, or press 1–9, or arrows + Enter",
+    hCapture = "Capture the current layout", hCaptureDesc = "“New profile” card or N: saves the windows of this screen",
+    hEdit = "Edit", hEditDesc = "Remove apps from the profile, or rename it",
+    hReplace = "Replace", hReplaceDesc = "Overwrites this screen’s variant with the current layout",
+    hDetach = "Remove from this screen", hDetachDesc = "Drops this screen’s variant, keeps the profile on its other screens",
+    hDelete = "Delete / Restore", hDeleteDesc = "Deletes a captured profile, or restores the original of a profile defined in init.lua. Click twice to confirm",
+    hDrag = "Reorder", hDragDesc = "Drag a card. The order sets the 1–9 keys",
+    hTabs = "Screen tabs", hTabsDesc = "One tab per screen resolution, plus All screens. Tab / ⇧Tab to switch",
+    hAuto = "Auto", hAutoDesc = "Re-applies a profile when a display is plugged or unplugged (not on wake)",
+    hActive = "Active profile", hActiveDesc = "The last profile applied",
+    hClosed = "Faded app", hClosedDesc = "Not running: skipped when the profile is applied",
   },
   fr = {
     title = "Layouts",
@@ -158,6 +175,23 @@ local STRINGS = {
     autoActive = "le profil actif",
     autoOn = "Application auto activée",
     autoOff = "Application auto désactivée",
+    help = "aide",
+    helpTip = "Aide : ce que fait chaque bouton",
+    helpTitle = "Aide",
+    helpSub = "Ce que fait chaque bouton et icône",
+    back = "Retour",
+    hOpen = "Ouvrir le panneau", hOpenDesc = "Icône de la barre de menus, ou le raccourci (⌘⌥⌃Espace par défaut)",
+    hApply = "Appliquer un profil", hApplyDesc = "Clic sur sa carte, ou touches 1–9, ou flèches + Entrée",
+    hCapture = "Capturer la disposition actuelle", hCaptureDesc = "Carte « Nouveau profil » ou N : enregistre les fenêtres de cet écran",
+    hEdit = "Modifier", hEditDesc = "Retirer des apps du profil, ou le renommer",
+    hReplace = "Remplacer", hReplaceDesc = "Écrase la variante de cet écran par la disposition actuelle",
+    hDetach = "Retirer de cet écran", hDetachDesc = "Supprime la variante de cet écran, garde le profil sur ses autres écrans",
+    hDelete = "Supprimer / Rétablir", hDeleteDesc = "Supprime un profil capturé, ou rétablit l’original d’un profil défini dans init.lua. Deux clics pour confirmer",
+    hDrag = "Réordonner", hDragDesc = "Glisse une carte. L’ordre définit les touches 1–9",
+    hTabs = "Onglets d’écran", hTabsDesc = "Un onglet par résolution d’écran, plus Tous les écrans. Tab / ⇧Tab pour changer",
+    hAuto = "Auto", hAutoDesc = "Réapplique un profil quand un écran est branché ou débranché (pas au réveil)",
+    hActive = "Profil actif", hActiveDesc = "Le dernier profil appliqué",
+    hClosed = "App estompée", hClosedDesc = "Pas ouverte : ignorée quand le profil est appliqué",
   },
 }
 
@@ -717,6 +751,21 @@ header p { font-size: 11px; color: var(--muted); margin-top: 1px; }
 .toggle.on { color: var(--fg); }
 .toggle.on i { background: var(--accent); box-shadow: none; }
 .toggle.on i::after { transform: translateX(11px); }
+.hbtn { font-size: 11.5px; font-weight: 650; }
+.help { display: grid; gap: 1px; margin: -2px -6px 0; }
+.hrow { display: flex; align-items: center; gap: 12px; padding: 6px; border-radius: 8px; }
+.hrow:hover { background: var(--card); }
+.hvis { width: 54px; flex: none; display: flex; align-items: center; justify-content: center; gap: 3px; }
+.hvis .act, .hvis .toggle { pointer-events: none; }
+.hrow b { display: block; font-size: 12px; font-weight: 600; }
+.hrow p { font-size: 11px; color: var(--muted); margin-top: 1px; }
+.mini { width: 30px; height: 20px; border-radius: 4px; background: var(--tile);
+        box-shadow: inset 0 0 0 1px var(--tile-line), var(--tile-shadow); display: flex; align-items: center; justify-content: center; }
+.mini svg { width: 12px; height: 12px; }
+.mini.off { opacity: .5; }
+.htab { display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 7px; border-radius: 6px; font-size: 10.5px;
+        font-weight: 550; background: var(--bg); box-shadow: 0 0 0 .5px var(--line), 0 1px 3px rgba(0,0,0,.14); }
+.htab svg { width: 12px; height: 12px; }
 .chip { font-size: 10.5px; font-weight: 500; color: var(--muted); background: var(--kbd);
         border-radius: 999px; padding: 3px 9px; }
 
@@ -851,6 +900,8 @@ const ICON = {
   edit: '<svg viewBox="0 0 16 16"><path d="M10.5 2.5l3 3L6 13H3v-3z"/><path d="M9 4l3 3"/></svg>',
   unscreen: '<svg viewBox="0 0 16 16"><rect x="2" y="2.75" width="12" height="8.5" rx="1.25"/><path d="M6 13.75h4M8 11.25v2.5M6 7h4"/></svg>',
   screen: '<svg viewBox="0 0 16 16"><rect x="2" y="2.75" width="12" height="8.5" rx="1.25"/><path d="M6 13.75h4M8 11.25v2.5"/></svg>',
+  grip: '<svg viewBox="0 0 16 16"><path d="M3 5h10M3 8h10M3 11h10"/></svg>',
+  menu: '<svg viewBox="0 0 18 18"><rect x="2" y="3" width="14" height="12" rx="2"/><path d="M9 3v12M9 9h7"/></svg>',
 };
 const app = document.getElementById('app');
 let view = 'grid', askKey = '';  // '<card index>:<action>' waiting for a 2nd click
@@ -953,7 +1004,7 @@ function renderGrid() {
   const t = tabs();
   app.innerHTML = `
     <header><div><h1>${T.title}</h1><p>${esc(subtitle)}</p></div>
-      <div class="hright">${autoToggle()}${t ? '' : `<span class="chip">${D.screen.label}</span>`}</div></header>
+      <div class="hright">${autoToggle()}${t ? '' : `<span class="chip">${D.screen.label}</span>`}<button class="act hbtn" data-help title="${T.helpTip}">?</button></div></header>
     ${t}
     <div class="grid" style="grid-template-columns:repeat(${D.cols}, ${D.cardW}px);gap:${D.gap}px">
       ${profiles.map(card).join('')}
@@ -963,8 +1014,36 @@ function renderGrid() {
           <div class="sub">${T.currentLayout}</div></div><kbd>N</kbd></div>
       </div>
     </div>
-    <footer><span><kbd>1</kbd>–<kbd>9</kbd> ${T.apply}</span><span><kbd>N</kbd> ${T.captureKey}</span>${t ? `<span><kbd>tab</kbd> ${T.switchScreen}</span>` : ''}<span>${T.dragHint}</span><span><kbd>esc</kbd> ${T.close}</span></footer>`;
+    <footer><span><kbd>1</kbd>–<kbd>9</kbd> ${T.apply}</span><span><kbd>N</kbd> ${T.captureKey}</span>${t ? `<span><kbd>tab</kbd> ${T.switchScreen}</span>` : ''}<span>${T.dragHint}</span><span><kbd>?</kbd> ${T.help}</span><span><kbd>esc</kbd> ${T.close}</span></footer>`;
   select(sel);
+  fit();
+}
+
+// Help: every button and icon of the panel, drawn as in the panel
+function renderHelp() {
+  view = 'help';
+  askKey = '';
+  const act = (icon, danger) => `<span class="act${danger ? ' danger' : ''}">${icon}</span>`;
+  const rows = [
+    [`<span class="mini">${ICON.menu}</span>`, T.hOpen, T.hOpenDesc],
+    ['<kbd>1</kbd><kbd>9</kbd>', T.hApply, T.hApplyDesc],
+    ['<kbd>N</kbd>', T.hCapture, T.hCaptureDesc],
+    [act(ICON.edit), T.hEdit, T.hEditDesc],
+    [act(ICON.frame), T.hReplace, T.hReplaceDesc],
+    [act(ICON.unscreen, true), T.hDetach, T.hDetachDesc],
+    [act(ICON.x, true), T.hDelete, T.hDeleteDesc],
+    [`<span class="mini">${ICON.grip}</span>`, T.hDrag, T.hDragDesc],
+    [`<span class="htab">${ICON.screen}<kbd>tab</kbd></span>`, T.hTabs, T.hTabsDesc],
+    [`<span class="toggle on"><i></i></span>`, T.hAuto, T.hAutoDesc],
+    ['<i class="dot"></i>', T.hActive, T.hActiveDesc],
+    [`<span class="mini off">${ICON.frame}</span>`, T.hClosed, T.hClosedDesc],
+  ];
+  app.innerHTML = `
+    <header><div><h1>${T.helpTitle}</h1><p>${T.helpSub}</p></div>
+      <button class="btn ghost" data-back>${T.back}</button></header>
+    <div class="help" style="width:${D.contentW}px">${rows.map(([vis, title, desc]) => `
+      <div class="hrow"><div class="hvis">${vis}</div><div><b>${title}</b><p>${desc}</p></div></div>`).join('')}</div>
+    <footer><span><kbd>esc</kbd> ${T.back.toLowerCase()}</span></footer>`;
   fit();
 }
 
@@ -1056,6 +1135,11 @@ document.addEventListener('click', e => {
   // Click in the transparent margin around the panel = click outside
   if (e.target === document.documentElement || e.target === document.body) return post({ type: 'close' });
   if (justDragged) return;
+  if (view === 'help') {
+    if (e.target.closest('[data-back]')) renderGrid();
+    return;
+  }
+  if (e.target.closest('[data-help]')) return renderHelp();
   if (view === 'editor') {
     const chip = e.target.closest('.app');
     if (chip) {
@@ -1094,6 +1178,10 @@ document.addEventListener('click', e => {
 });
 
 document.addEventListener('keydown', e => {
+  if (view === 'help') {
+    if (e.key === 'Escape' || e.key === '?' || e.key === 'Backspace') { e.preventDefault(); renderGrid(); }
+    return;
+  }
   if (view === 'editor') {
     if (e.key === 'Escape') { e.preventDefault(); renderGrid(); }
     if (e.key === 'Enter') { e.preventDefault(); save(); }
@@ -1108,6 +1196,7 @@ document.addEventListener('keydown', e => {
     if (keys.length) setFilter(keys[(keys.indexOf(filter) + (e.shiftKey ? -1 : 1) + keys.length) % keys.length]);
     return;
   }
+  if (e.key === '?' || e.key === 'h' || e.key === 'H') { e.preventDefault(); return renderHelp(); }
   if (e.key === 'n' || e.key === 'N') { e.preventDefault(); return renderEditor('capture', null); }
   if (/^[1-9]$/.test(e.key) && +e.key <= profiles.length) return activate(+e.key - 1);
   const moves = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: D.cols, ArrowUp: -D.cols };
